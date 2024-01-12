@@ -7,15 +7,16 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		1C08F9252B4A858200DA2053 /* BrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C08F9242B4A858200DA2053 /* BrowserView.swift */; };
-		1C08F9272B4A869A00DA2053 /* EditServiceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C08F9262B4A869A00DA2053 /* EditServiceView.swift */; };
+		1C08F9252B4A858200DA2053 /* AvailableServicesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C08F9242B4A858200DA2053 /* AvailableServicesView.swift */; };
 		1C0A54002B439A780093E7EF /* BufferView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C0A53FF2B439A780093E7EF /* BufferView.swift */; };
+		1C12AAB22B5106A20028BFCB /* ConnectedServicesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C12AAB12B5106A20028BFCB /* ConnectedServicesView.swift */; };
 		1C69443C2B4BED7B00A41E5A /* Service.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C69443B2B4BED7B00A41E5A /* Service.swift */; };
+		1C7FFCA82B512A83000EDD43 /* ServiceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C7FFCA72B512A83000EDD43 /* ServiceManager.swift */; };
+		1C7FFCAA2B5135A1000EDD43 /* Buffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C7FFCA92B5135A1000EDD43 /* Buffer.swift */; };
 		1C9168B62B466D81003789F5 /* Scanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C9168B52B466D81003789F5 /* Scanner.swift */; };
 		1C9168B82B466E67003789F5 /* Connection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C9168B72B466E67003789F5 /* Connection.swift */; };
 		1C9168BA2B466F47003789F5 /* NineProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C9168B92B466F47003789F5 /* NineProtocol.swift */; };
 		1CA326B32B4A357B00CA52C6 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CA326B22B4A357B00CA52C6 /* ContentView.swift */; };
-		1CA326C12B4A5BDA00CA52C6 /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CA326C02B4A5BDA00CA52C6 /* SidebarView.swift */; };
 		1CA326C32B4A5C8F00CA52C6 /* NavigationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CA326C22B4A5C8F00CA52C6 /* NavigationManager.swift */; };
 		1CC6E2FD2B47984E00BC7008 /* Browser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CC6E2FC2B47984E00BC7008 /* Browser.swift */; };
 		1CDCB55D2B40B4BF0054ACA1 /* AltidApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CDCB55C2B40B4BF0054ACA1 /* AltidApp.swift */; };
@@ -24,16 +25,17 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		1C08F9242B4A858200DA2053 /* BrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserView.swift; sourceTree = "<group>"; };
-		1C08F9262B4A869A00DA2053 /* EditServiceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditServiceView.swift; sourceTree = "<group>"; };
+		1C08F9242B4A858200DA2053 /* AvailableServicesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvailableServicesView.swift; sourceTree = "<group>"; };
 		1C0A53FF2B439A780093E7EF /* BufferView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BufferView.swift; sourceTree = "<group>"; };
+		1C12AAB12B5106A20028BFCB /* ConnectedServicesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectedServicesView.swift; sourceTree = "<group>"; };
 		1C5926D92B40F8C100483BE5 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		1C69443B2B4BED7B00A41E5A /* Service.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Service.swift; sourceTree = "<group>"; };
+		1C7FFCA72B512A83000EDD43 /* ServiceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceManager.swift; sourceTree = "<group>"; };
+		1C7FFCA92B5135A1000EDD43 /* Buffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Buffer.swift; sourceTree = "<group>"; };
 		1C9168B52B466D81003789F5 /* Scanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Scanner.swift; sourceTree = "<group>"; };
 		1C9168B72B466E67003789F5 /* Connection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Connection.swift; sourceTree = "<group>"; };
 		1C9168B92B466F47003789F5 /* NineProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NineProtocol.swift; sourceTree = "<group>"; };
 		1CA326B22B4A357B00CA52C6 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		1CA326C02B4A5BDA00CA52C6 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
 		1CA326C22B4A5C8F00CA52C6 /* NavigationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationManager.swift; sourceTree = "<group>"; };
 		1CC6E2FC2B47984E00BC7008 /* Browser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Browser.swift; sourceTree = "<group>"; };
 		1CDCB5592B40B4BF0054ACA1 /* Altid.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Altid.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -70,6 +72,8 @@
 				1CC6E2FC2B47984E00BC7008 /* Browser.swift */,
 				1CA326C22B4A5C8F00CA52C6 /* NavigationManager.swift */,
 				1C69443B2B4BED7B00A41E5A /* Service.swift */,
+				1C7FFCA92B5135A1000EDD43 /* Buffer.swift */,
+				1C7FFCA72B512A83000EDD43 /* ServiceManager.swift */,
 			);
 			path = Model;
 			sourceTree = "<group>";
@@ -79,9 +83,8 @@
 			children = (
 				1C0A53FF2B439A780093E7EF /* BufferView.swift */,
 				1CA326B22B4A357B00CA52C6 /* ContentView.swift */,
-				1CA326C02B4A5BDA00CA52C6 /* SidebarView.swift */,
-				1C08F9262B4A869A00DA2053 /* EditServiceView.swift */,
-				1C08F9242B4A858200DA2053 /* BrowserView.swift */,
+				1C12AAB12B5106A20028BFCB /* ConnectedServicesView.swift */,
+				1C08F9242B4A858200DA2053 /* AvailableServicesView.swift */,
 			);
 			path = View;
 			sourceTree = "<group>";
@@ -196,16 +199,17 @@
 			buildActionMask = 2147483647;
 			files = (
 				1C9168BA2B466F47003789F5 /* NineProtocol.swift in Sources */,
+				1C7FFCA82B512A83000EDD43 /* ServiceManager.swift in Sources */,
 				1C69443C2B4BED7B00A41E5A /* Service.swift in Sources */,
+				1C12AAB22B5106A20028BFCB /* ConnectedServicesView.swift in Sources */,
 				1C0A54002B439A780093E7EF /* BufferView.swift in Sources */,
 				1C9168B82B466E67003789F5 /* Connection.swift in Sources */,
 				1CC6E2FD2B47984E00BC7008 /* Browser.swift in Sources */,
-				1CA326C12B4A5BDA00CA52C6 /* SidebarView.swift in Sources */,
 				1CA326B32B4A357B00CA52C6 /* ContentView.swift in Sources */,
+				1C7FFCAA2B5135A1000EDD43 /* Buffer.swift in Sources */,
 				1CDCB55D2B40B4BF0054ACA1 /* AltidApp.swift in Sources */,
 				1C9168B62B466D81003789F5 /* Scanner.swift in Sources */,
-				1C08F9272B4A869A00DA2053 /* EditServiceView.swift in Sources */,
-				1C08F9252B4A858200DA2053 /* BrowserView.swift in Sources */,
+				1C08F9252B4A858200DA2053 /* AvailableServicesView.swift in Sources */,
 				1CA326C32B4A5C8F00CA52C6 /* NavigationManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -333,7 +337,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Altid/Altid.entitlements;
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Altid/Preview Content\"";
@@ -342,6 +346,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Altid/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Discover Altid services";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -349,6 +354,8 @@
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
+				INFOPLIST_KEY_UIStatusBarHidden = YES;
+				INFOPLIST_KEY_UIStatusBarStyle = "";
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -374,7 +381,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Altid/Altid.entitlements;
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Altid/Preview Content\"";
@@ -383,6 +390,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Altid/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Discover Altid services";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -390,6 +398,8 @@
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
+				INFOPLIST_KEY_UIStatusBarHidden = YES;
+				INFOPLIST_KEY_UIStatusBarStyle = "";
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
