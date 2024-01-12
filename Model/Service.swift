@@ -4,54 +4,43 @@
 //
 //  Created by halfwit on 2024-01-08.
 //
-// TODO: Separate these types into local and remote explicitly, make them conform to a protocol that works for anything we need
-import Observation
-import SwiftData
-import SwiftUI
 
-@Model
-class Service: Codable {
+import Network
 
+class Service: Hashable, Identifiable {
+    private var browser: Result
+    private var connection: NWConnection?
+    var buffers: [Buffer]
+    
     enum CodingKeys: CodingKey {
-        case name, addr, broadcasting, connected
+        case browser
+        case connection
     }
     
-    var name: String
-    var addr: String
-    var broadcasting: Bool
-    var connected: Bool
-    
-    init(name: String, addr: String, broadcasting: Bool, connected: Bool) {
-        self.name = name
-        self.addr = addr
-        self.broadcasting = broadcasting
-        self.connected = connected
+    var displayName: String {
+        return browser.name
     }
-    
-    required init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        name = try container.decode(String.self, forKey: .name)
-        addr = try container.decode(String.self, forKey: .addr)
-        broadcasting = try container.decode(Bool.self, forKey: .broadcasting)
-        connected = try container.decode(Bool.self, forKey: .connected)
-    }
-    
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(name, forKey: .name)
-        try container.encode(addr, forKey: .addr)
-        try container.encode(broadcasting, forKey: .broadcasting)
-        try container.encode(connected, forKey: .connected)
-    }
-}
 
-extension EnvironmentValues {
-    var localServices: [Service] {
-        get { self[DataKey.self] }
-        set { self[DataKey.self] = newValue }
+    var connected: Bool {
+        //return browser.connection.status
+        return false
     }
-}
 
-private struct DataKey: EnvironmentKey {
-    static var defaultValue: [Service] = [Service]()
+    init(result: Result) {
+        self.buffers = [Buffer]()
+        self.buffers.append(Buffer(displayName: "#altid"))
+        self.browser = result
+    }
+    
+    static func == (lhs: Service, rhs: Service) -> Bool {
+        return lhs.displayName == rhs.displayName
+    }
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(displayName)
+    }
+    
+    func connect() {
+        
+    }
 }

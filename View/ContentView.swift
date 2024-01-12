@@ -6,34 +6,31 @@
 //
 
 import SwiftUI
-import SwiftData
 import Network
 
 struct ContentView: View {
-    //@Environment(\.navi) var navi
-    //@Environment(\.localServices) var localServices
-
-    //@SceneStorage("navigationState") var naviStateData: Data?
-    //@Query var remotes: [RemoteService]
-
+    
     var body: some View {
         NavigationSplitView {
-            SidebarView()
+            List {
+                ConnectedServicesView()
+                AvailableServicesView()
+            }
+#if os(iOS)
+            .listStyle(.grouped)
+#else
+            .listStyle(.sidebar)
+#endif
+            .navigationTitle("Sidebar")
         } detail: {
-            ContentView()
+            BufferView()
+                .navigationTitle("Main")
         }
-        //.onAppear {
-        //    navi.data = naviStateData
-        //    data.setContext(context: modelContext)
-        //}
-        //.onReceive(navi.$selected.dropFirst()) { _ in
-        //    naviStateData = navi.data
-        //}
     }
 }
 
+
 #Preview {
     ContentView()
-        //.environment(\.navi, NavigationManager())
-        //.environment(\.data, [LocalService]())
 }
+

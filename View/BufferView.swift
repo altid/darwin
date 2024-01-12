@@ -9,23 +9,23 @@ import SwiftUI
 
 struct BufferView: View {
     @Environment(\.navigation) var navigation
-    
+
     var body: some View {
-        if let state = navigation.selected {
-            switch state {
-            case .details(let service):
-                Text(service.name)
-            case .settings:
-                //SettingsView()
-                Text("Hello")
-            }
-        } else {
+        switch navigation.selected {
+        case .none:
             Text("Select a Service to continue")
+        case .details(let buffer):
+            Text(buffer.displayName)
+                .navigationTitle(buffer.displayName)
+        case .settings:
+            //SettingsView()
+            Text("Hello")
+                .navigationTitle("Settings")
         }
     }
 }
 
 #Preview {
-   BufferView()
+    BufferView()
         .environment(\.navigation, NavigationManager())
 }

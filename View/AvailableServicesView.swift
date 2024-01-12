@@ -7,8 +7,8 @@
 
 import SwiftUI
 
-struct BrowserView: View {
-    @Environment(\.localServices) var localServices
+struct AvailableServicesView: View {
+    @Environment(\.services) var services
     var browser = Browser(name: "Default")
     
     var body: some View {
@@ -20,8 +20,8 @@ struct BrowserView: View {
                         //  showerror
                         //  return
                         //
-                        //let service = Service(result: result)
-                        //data.append(service)
+                        let service = Service(result: result)
+                        services.addService(service: service)
                         browser.ignore(result: result)
                     }
             }
@@ -31,15 +31,16 @@ struct BrowserView: View {
             scanner.startBrowsing()
         }
         .refreshable {
-            browser.ignored.removeAll()
-            browser.ignoreServices(services: localServices)
+            browser.ignoreServices(services: services)
             let listener = Scanner(delegate: browser)
             listener.startBrowsing()
         }
     }
 }
 
+/*
 #Preview {
-    BrowserView()
-        .environment(\.localServices, [Service]())
+    AvailableServicesView()
+        .modelContainer(previewContainer)
 }
+*/

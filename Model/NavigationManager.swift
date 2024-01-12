@@ -6,32 +6,19 @@
 //
 
 import SwiftUI
-import Combine
 import Observation
 
-enum Selected: Hashable, Codable {
-    case details(Service)
+enum Selected: Hashable {
+    case details(Buffer)
+    case none
     case settings
 }
 
 @Observable class NavigationManager {
-    var selected: Selected? = nil
-    var data: Data? {
-        get {
-           try? JSONEncoder().encode(selected)
-        }
-        set {
-            guard let data = newValue,
-                  let selected = try? JSONDecoder().decode(Selected.self, from: data) else {
-                return
-            }
-            self.selected = selected
-        }
-    }
-    
-    func root() { selected = nil }
+    var selected: Selected = .none
+    func none() { selected = .none }
     func settings() { selected = .settings }
-    func details(service: Service) { selected = .details(service) }
+    func details(buffer: Buffer) { selected = .details(buffer) }
 }
 
 extension EnvironmentValues {
