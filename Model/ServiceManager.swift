@@ -13,6 +13,9 @@ import Observation
     var list: [Service] = [Service]()
     
     func addService(service: Service) {
+        if let _ = list.firstIndex(where: { $0 == service }) {
+            return
+        }
         list.append(service)
     }
     

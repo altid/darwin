@@ -27,8 +27,9 @@ class Scanner {
     // Start browsing for services.
     func startBrowsing() {
         let parameters = NWParameters()
-        parameters.includePeerToPeer = true
-        let browser = NWBrowser(for: .bonjour(type: "_altid._tcp", domain: nil), using: parameters)
+        
+        parameters.includePeerToPeer = false
+        let browser = NWBrowser(for: .bonjour(type: "_altid._tcp", domain: ""), using: parameters)
         self.browser = browser
         browser.stateUpdateHandler = { newState in
             switch newState {

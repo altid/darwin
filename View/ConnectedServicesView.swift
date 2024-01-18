@@ -12,31 +12,19 @@ struct ConnectedServicesView: View {
     @Environment(\.navigation) var navigation: NavigationManager
     
     var body: some View {
-        Section("Connected"){
-            List(services.list) { service in
-                Section(service.displayName) {
-                    List(service.buffers) { buffer in
-                    //ForEach(service.buffers) { buffer in
-                        Text(buffer.displayName)
-                            .onTapGesture {
-                                navigation.selected = Selected.details(buffer)
-                            }
+        Section("Connected") {
+            ForEach(services.list) { service in
+                ServiceListItemView(service: service)
+                    .contextMenu {
+                        Button("Disconnect") {
+                            services.removeService(service: service)
+                            //service.disconnect()
+                        }
+                        Button("Reconnect") {
+                            //service.reconnect()
+                        }
                     }
-                }
-                .contextMenu {
-                    Button("Disconnect") {
-                        //service.disconnect()
-                    }
-                    Button("Reconnect") {
-                        //service.reconnect()
-                    }
-                }
             }
-#if os(iOS)
-            .listStyle(.grouped)
-#else
-            .listStyle(.sidebar)
-#endif
         }
     }
 }

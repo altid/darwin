@@ -10,11 +10,12 @@ import Observation
 
 final class Result: Identifiable {
     let name: String
+    let result: NWBrowser.Result
+    var connecting: Bool = false
 
-    let browser: NWBrowser.Result
-    init(name: String, browser: NWBrowser.Result) {
+    init(name: String, result: NWBrowser.Result) {
         self.name = name
-        self.browser = browser
+        self.result = result
     }
 }
 
@@ -41,7 +42,7 @@ final class Result: Identifiable {
         }
         self.results.append(incoming)
     }
-        
+    
     func ignoreServices(services: ServiceManager) {
         ignoredServices = services.list
     }
@@ -50,6 +51,14 @@ final class Result: Identifiable {
         self.results = self.results.filter { $0.name != result.name }
         self.ignored.append(result)
     }
+    
+    func connecting(_ result: Result) {
+        for item in results {
+            if item.name == result.name {
+                item.connecting = true
+            }
+        }
+    }
 }
 
 extension Browser: ScannerDelegate {
@@ -57,8 +66,8 @@ extension Browser: ScannerDelegate {
     func refreshResults(results: Set<NWBrowser.Result>) {
         self.results = [Result]()
         for result in results {
-            if case let NWEndpoint.service(name: name, type: _, domain: _, interface: _) = result.endpoint {
-                self.addResult(incoming: Result(name: name, browser: result))
+            if case let NWEndpoint.service(name: name, type: _, domain: _, interface: result.endpoint.interface) = result.endpoint {
+                self.addResult(incoming: Result(name: name, result: result))
             }
         }
     }

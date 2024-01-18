@@ -5,12 +5,13 @@
 //  Created by halfwit on 2024-01-08.
 //
 
+import SwiftUI
 import Network
 
 class Service: Hashable, Identifiable {
     private var browser: Result
-    private var connection: NWConnection?
     var buffers: [Buffer]
+    var session: PeerConnection?
     
     enum CodingKeys: CodingKey {
         case browser
@@ -22,13 +23,13 @@ class Service: Hashable, Identifiable {
     }
 
     var connected: Bool {
-        //return browser.connection.status
-        return false
+        return session?.initiatedConnection ?? false
     }
 
     init(result: Result) {
         self.buffers = [Buffer]()
         self.buffers.append(Buffer(displayName: "#altid"))
+        self.buffers.append(Buffer(displayName: "##meskarune"))
         self.browser = result
     }
     
@@ -41,6 +42,37 @@ class Service: Hashable, Identifiable {
     }
     
     func connect() {
+        self.session = PeerConnection(result: self.browser, delegate: self)
+        self.session?.startConnection()
+    }
+}
+
+extension Service: PeerConnectionDelegate {
+    func connectionReady() {
+        session?.writeMessage(Tversion())
+        //session?.writeMessage(Tauth())
+        session?.writeMessage(Tattach(fid: 0, afid: 0xFFFF, uname: "halfwit", aname: "halfwit"))
+    }
+    
+    func connectionFailed() {
+        print("Connection failed")
+    }
+
+    func receivedMessage(content: Data?, message: NWProtocolFramer.Message) {
+        if var data = content {
+            do {
+                let msg = try nineProc(&data)
+                print(msg)
+            } catch {
+                print("Shit")
+            }
+        }
         
     }
+    
+    func displayAdvertiseError(_ error: NWError) {
+        print("Advertise Error: \(error)")
+    }
+    
+    
 }

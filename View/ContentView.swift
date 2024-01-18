@@ -21,10 +21,9 @@ struct ContentView: View {
 #else
             .listStyle(.sidebar)
 #endif
-            .navigationTitle("Sidebar")
+            .navigationTitle("Altid")
         } detail: {
             BufferView()
-                .navigationTitle("Main")
         }
     }
 }

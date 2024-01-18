@@ -22,3 +22,4 @@ class Buffer: Identifiable, Hashable {
         self.displayName = displayName
     }
 }
+
