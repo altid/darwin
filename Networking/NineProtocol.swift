@@ -49,27 +49,27 @@ enum nineType: UInt8 {
 }
 
 enum fileType: UInt8, Codable {
-    case dir = 7
-    case append = 6
-    case excl = 5
-    case invalid = 4
-    case auth = 3
-    case tmp = 2
+    case dir = 128
+    case append = 64
+    case excl = 32
+    case invalid = 16
+    case auth = 8
+    case tmp = 4
     case file = 0
 }
 
-enum nineMode: UInt32, Codable {
+enum nineMode: UInt8, Codable {
     case read = 0
     case write = 1
     case rdwr = 2
     case exec = 3
-    //case trunc = 0x10
-    //case rclose = 0x40
-    //case excl = 0x1000
+    case trunc = 0x10
+    case rclose = 0x40
 }
 
 protocol Messageable {
     var encodedData: Data {get}
+    var minReceiveLength: Int {get}
     var context: NWConnection.ContentContext {get}
 }
 
@@ -94,97 +94,18 @@ struct nineStat: Codable {
     var muid: Data
 }
 
-class nineResponse {
-    var length: UInt32
-    var type: nineType
-    var tag: UInt16
-    private var err: [Data] = [Data]()
-    private var data: Data = Data(count: 0)
-    private var qs: [nineQid] = [nineQid]()
-    private var count: UInt32 = 0
-    private var io: UInt32 = 0
-    private var st: nineStat?
-    
-    init(buffer: UnsafeMutableRawBufferPointer) {
-        var offset = 0
-        self.length = r32(buffer: buffer, &offset)
-        let type = r8(buffer: buffer, &offset) /* Why is this 20? */
-        self.type = nineType(rawValue: type) ?? .invalid
-        
-        self.tag = r16(buffer: buffer, &offset)
-    }
-    
-    // iounit may be needed, check eventually
-    var write: UInt32 {
-        get {
-            return count
-        }
-        set {
-            count = newValue
-        }
-    }
-    var read: (Data, UInt32) {
-        get {
-            return (data, count)
-        }
-        set {
-            data = newValue.0
-            count = newValue.1
-        }
-    }
-    
-    var qids: [nineQid] {
-        get {
-            return qs
-        }
-        set {
-            qs = newValue
-        }
-    }
-    
-    var stat: nineStat {
-        get {
-            return st!
-        }
-        set {
-            st = newValue
-        }
-    }
-    var error: [Data] {
-        get {
-            return err
-        }
-        set {
-            err = newValue
-        }
-    }
-    var iounit: UInt32 {
-        get {
-            return io
-        }
-        set {
-            io = newValue
-        }
-    }
-}
-
 // Main framing protocol
 class NineProtocol: NWProtocolFramerImplementation {
     static let definition = NWProtocolFramer.Definition(implementation: NineProtocol.self)
     static var label: String { return "9p" }
     
     required init(framer: NWProtocolFramer.Instance) {}
-    /* We could write raw bytes here */
-    func start(framer: NWProtocolFramer.Instance) -> NWProtocolFramer.StartResult {
-        return .ready
-    }
+    func start(framer: NWProtocolFramer.Instance) -> NWProtocolFramer.StartResult { return .ready }
     func wakeup(framer: NWProtocolFramer.Instance) { print("In wakeup")}
     func stop(framer: NWProtocolFramer.Instance) -> Bool { print("In stop"); return true }
     func cleanup(framer: NWProtocolFramer.Instance) { print("In cleanup")}
     
-    // TODO: We never receive the Tmessage. Try to break into a header/body pair potentially
     func handleOutput(framer: NWProtocolFramer.Instance, message: NWProtocolFramer.Message, messageLength: Int, isComplete: Bool) {
-        print("Message count \(messageLength)")
         do {
             try framer.writeOutputNoCopy(length: messageLength)
         } catch {
@@ -193,131 +114,302 @@ class NineProtocol: NWProtocolFramerImplementation {
     }
     
     func handleInput(framer: NWProtocolFramer.Instance) -> Int {
-        while true {
-            var count: Int = 0
-            let parsed = framer.parseInput(minimumIncompleteLength: 4,
-                                           maximumLength: 4) { (buffer, isComplete) -> Int in
-                var offset = 0
-                guard let buffer = buffer else {
-                    return 0
-                }
-                count = Int(r32(buffer: buffer, &offset))
+        let headerSize = 7
+        var count: UInt32 = 0
+        var type: UInt8 = 0
+        var tag: UInt16 = 0
+        var dataSize: Int = 0
+
+        let parsed = framer.parseInput(minimumIncompleteLength: headerSize, maximumLength: headerSize) { (buffer, isComplete) -> Int in
+            guard let buffer = buffer else {
                 return 0
             }
-            guard parsed else {
-                return 4
-            }
-            let message = NWProtocolFramer.Message(count: 0)
-            if !framer.deliverInputNoCopy(length: count, message: message, isComplete: true) {
+            if buffer.isEmpty {
                 return 0
             }
+            var offset = 0
+            count = r32(buffer: buffer, &offset)
+            type = r8(buffer: buffer, &offset)
+            tag = r16(buffer: buffer, &offset)
+            return offset
         }
-    }
-}
+        guard parsed else {
+            return headerSize
+        }
+        let message = NWProtocolFramer.Message(count: count, type: type, tag: tag)
+        while true {
+            switch type {
+            case nineType.Rversion.rawValue:
+                let parsed = framer.parseInput(minimumIncompleteLength: 6, maximumLength: 6) { (buffer, isComplete) -> Int in
+                    guard let buffer = buffer else {
+                        return 0
+                    }
+                    var offset = 0
+                    let msize = r32(buffer: buffer, &offset)
+                    MSIZE = msize != MSIZE ? msize : MSIZE
+                    dataSize = Int(r16(buffer: buffer, &offset))
+                    return offset
+                }
+                guard parsed else {
+                    return 6
+                }
+            case nineType.Rauth.rawValue:
+                // Not implemented
+                break
+            case nineType.Rattach.rawValue:
 
-/* TODO: This will end up taking in a type that conforms to a sendable protocol */
-extension NWProtocolFramer.Message {
-    /* Set completions here */
-    convenience init(count: Int) {
-        self.init(definition: NineProtocol.definition)
-        self["count"] = count
-    }
-}
-
-func nineProc(_ data: inout Data) throws -> nineResponse {
-    try withUnsafeMutableBytes(of: &data) { buffer in
-        var offset = 7 /* 7 bits after the header is pulled out */
-        let nineResponse = nineResponse(buffer: buffer)
-        
-        switch(nineResponse.type) {
-        case .Rerror:
-            nineResponse.error = rstr(buffer: buffer, &offset).split(separator: 0)
-        case .Rattach:
-            let qid = try rqid(buffer: buffer, &offset)
-            nineResponse.qids = [qid]
-        case .Rversion:
-            let msize = r32(buffer: buffer, &offset)
-            MSIZE = msize != MSIZE ? msize : MSIZE
-            guard rstr(buffer: buffer, &offset) == version else {
-                throw NineErrors.connectError
-            }
-            print("Rversion")
-        case .Rauth:
-            // Not implemented
-            print("rauth")
-        case .Rflush:
-            // Flush the given tag, maybe a global
-            print("rflush")
-        case .Rwalk:
-            var tmpqids = [nineQid]()
-            let nwqid = r16(buffer: buffer, &offset)
-            for _ in 1...nwqid {
-                let tmpqid = try rqid(buffer: buffer, &offset)
-                tmpqids.append(tmpqid)
-            }
-            nineResponse.qids = tmpqids
-        case .Ropen:
-            let qid = try rqid(buffer: buffer, &offset)
-            nineResponse.qids = [qid]
-            nineResponse.iounit = r32(buffer: buffer, &offset)
-        case .Rcreate:
-            let qid = try rqid(buffer: buffer, &offset)
-            nineResponse.qids = [qid]
-            nineResponse.iounit = r32(buffer: buffer, &offset)
-        case .Rread:
-            let count = r32(buffer: buffer, &offset)
-            let data = rstr(buffer: buffer, &offset)
-            nineResponse.read = (data, count)
-        case .Rwrite:
-            nineResponse.write = r32(buffer: buffer, &offset)
-        case .Rclunk:
-            print("Rclunk")
-        case .Rremove:
-            print("Rremove")
-        case .Rstat:
-            let size = r16(buffer: buffer, &offset)
-            let type = r16(buffer: buffer, &offset)
-            let dev = r32(buffer: buffer, &offset)
-            let qid = try rqid(buffer: buffer, &offset)
-            let mode = r32(buffer: buffer, &offset)
-            let atime = r32(buffer: buffer, &offset)
-            let mtime = r32(buffer: buffer, &offset)
-            let length = r64(buffer: buffer, &offset)
-            let stdata = rstr(buffer: buffer, &offset)
-            let chunks = stdata.split(separator: 0)
-            if chunks.count != 4 {
-                throw NineErrors.decodeError
+                let parsed = framer.parseInput(minimumIncompleteLength: 13, maximumLength: 13) { (buffer, isComplete) -> Int in
+                    guard let buffer = buffer else {
+                        return 0
+                    }
+                    var offset = 0
+                    let qid = rqid(buffer: buffer, &offset)
+                    message.qids = [qid]
+                    return offset
+                }
+                guard parsed else {
+                    return 13
+                }
+            case nineType.Rerror.rawValue:
+                // We can show a popup eventually
+                break
+            case nineType.Rflush.rawValue:
+                break
+            case nineType.Rwalk.rawValue:
+                var total = 0
+                // 210: qid is 13 bytes. maxpathlen is 16. 2 for nwqid
+                let parsed = framer.parseInput(minimumIncompleteLength: 15, maximumLength: 210) { (buffer, isComplete) -> Int in
+                    guard let buffer = buffer else {
+                        return 0
+                    }
+                    var tmpqids = [nineQid]()
+                    var offset = 0
+                    let nwqid = r16(buffer: buffer, &offset)
+                    total = Int(nwqid > 0 ? nwqid * 13 + 2 : 15)
+                    if buffer.count < total {
+                        return total
+                    }
+                    for _ in 1...nwqid {
+                        let tmpqid = rqid(buffer: buffer, &offset)
+                        tmpqids.append(tmpqid)
+                    }
+                    message.qids = tmpqids
+                    return offset
+                }
+                guard parsed else {
+                    return total
+                }
+            case nineType.Rcreate.rawValue:
+                fallthrough
+            case nineType.Ropen.rawValue:
+                let parsed = framer.parseInput(minimumIncompleteLength: 17, maximumLength: 17) { (buffer, isComplete) -> Int in
+                    guard let buffer = buffer else {
+                        return 0
+                    }
+                    var offset = 0
+                    let qid = rqid(buffer: buffer, &offset)
+                    message.qids = [qid]
+                    message.iounit = r32(buffer: buffer, &offset)
+                    return offset
+                }
+                guard parsed else {
+                    return 17
+                }
+            case nineType.Rread.rawValue:
+                let parsed = framer.parseInput(minimumIncompleteLength: 4, maximumLength: 4) { (buffer, isComplete) -> Int in
+                    guard let buffer = buffer else {
+                        return 0
+                    }
+                    var offset = 0
+                    dataSize = Int(r32(buffer: buffer, &offset))
+                    return offset
+                }
+                guard parsed else {
+                    return 4
+                }
+            case nineType.Rwrite.rawValue:
+                // TODO: How much we wrote returned, this is important for our isComplete stuff
+                break
+            case nineType.Rclunk.rawValue:
+                break
+            case nineType.Rremove.rawValue:
+                break
+            case nineType.Rstat.rawValue:
+                let parsed = framer.parseInput(minimumIncompleteLength: 52, maximumLength: .max) { (buffer, isComplete) -> Int in
+                    guard let buffer = buffer else {
+                        return 0
+                    }
+                    var offset = 0
+                    let size = r16(buffer: buffer, &offset)
+                    let type = r16(buffer: buffer, &offset)
+                    let dev = r32(buffer: buffer, &offset)
+                    let qid = rqid(buffer: buffer, &offset)
+                    let mode = r8(buffer: buffer, &offset)
+                    let atime = r32(buffer: buffer, &offset)
+                    let mtime = r32(buffer: buffer, &offset)
+                    let length = r64(buffer: buffer, &offset)
+                    let ncount = r16(buffer: buffer, &offset)
+                    let name = rstr(buffer: buffer, count: ncount, &offset)
+                    let ucount = r16(buffer: buffer, &offset)
+                    let uid = rstr(buffer: buffer, count: ucount, &offset)
+                    let gcount = r16(buffer: buffer, &offset)
+                    let gid = rstr(buffer: buffer, count: gcount, &offset)
+                    let mcount = r16(buffer: buffer, &offset)
+                    let muid = rstr(buffer: buffer, count: mcount, &offset)
+                    
+                    message.stat = nineStat(size: size, type: type, dev: dev, qid: qid, mode: nineMode(rawValue: mode)!, atime: atime, mtime: mtime, length: length, name: name, uid: uid, gid: gid, muid: muid)
+                    return offset
+                }
+                guard parsed else {
+                    return 52
+                }
+            case nineType.Rwstat.rawValue:
+                break
+            default:
+                return 0
             }
             
-            nineResponse.stat = nineStat(size: size, type: type, dev: dev, qid: qid, mode: nineMode(rawValue: mode)!, atime: atime, mtime: mtime, length: length, name: chunks[0], uid: chunks[1], gid: chunks[2], muid: chunks[3])
-        case .Rwstat:
-            print("Rwstat")
-        default:
-            print("ERROR WILL ROBINSON") /* Invalid */
+            if !framer.deliverInputNoCopy(length: dataSize, message: message, isComplete: true) {
+                return 0
+            }
+            return Int(message.count)
         }
-        
-        return nineResponse
+    }
+}
+
+extension NWProtocolFramer.Message {
+    /* Set completions here */
+    convenience init(count: UInt32, type: UInt8, tag: UInt16, fid: UInt32 = 0, iounit: UInt32 = 0, qids: [nineQid]? = nil, stat: nineStat? = nil) {
+        self.init(definition: NineProtocol.definition)
+        self["count"] = count
+        self["type"] = type
+        self["tag"] = tag
+        self["fid"] = fid
+        self["iounit"] = iounit
+        self["qids"] = qids
+        self["stat"] = stat
+    }
+    
+    var count: UInt32 {
+        if let val = self["count"] as? UInt32 {
+            return val
+        }
+        return 0
+    }
+    
+    var type: nineType {
+        if let val = self["type"] as? UInt8 {
+            return nineType(rawValue: val) ?? .invalid
+        }
+        return .invalid
+    }
+    
+    var tag: UInt16 {
+        if let val = self["tag"] as? UInt16 {
+            return val
+        }
+        return 0
+    }
+    
+    var fid: UInt32 {
+        if let val = self["fid"] as? UInt32 {
+            return val
+        }
+        return 0
+    }
+    
+    var iounit: UInt32 {
+        get {
+            if let val = self["fid"] as? UInt32 {
+                return val
+            }
+            return 0
+        }
+        set {
+            self["iounit"] = newValue
+        }
+    }
+    
+    var qids: [nineQid]? {
+        get {
+            if let qids = self["qids"] as? [nineQid] {
+                return qids
+            }
+            return nil
+        }
+        set {
+            self["qids"] = newValue
+        }
+    }
+    var stat: nineStat? {
+        get {
+            if let stat = self["stat"] as? nineStat {
+                return stat
+            }
+            return nil
+        }
+        set {
+            self["stat"] = newValue
+        }
     }
 }
 
 struct Tversion: Messageable, Encodable {
+    var minReceiveLength: Int = 13
+    
     var encodedData: Data {
         var data = Data(count: 0)
-        w32(&data, input: 19)
-        w8(&data, input: nineType.Tversion.rawValue)
-        w16(&data, input: 0)
+        w32(&data, input: 19) // length
+        w8(&data, input: nineType.Tversion.rawValue) // type
+        w16(&data, input: 0) // tag
         w32(&data, input: MSIZE)
         wstr(&data, input: version)
         return data
     }
     
     var context: NWConnection.ContentContext {
-        let message = NWProtocolFramer.Message(count: 19)
-        return NWConnection.ContentContext(identifier: "Tversion", metadata: [message])
+        return NWConnection.ContentContext(identifier: "Tversion")
+    }
+    
+    
+}
+
+struct Tauth: Messageable, Encodable {
+    var minReceiveLength: Int = 20
+    
+    let length: UInt32
+    let afid: UInt32
+    let uname: Data
+    let aname: Data
+    
+    init(afid: UInt32, uname: String, aname: String) {
+        
+        let size = aname.count+2 + uname.count+2 + 4+1+2+4
+        self.length = UInt32(size)
+        self.afid = 0xFFFF
+        self.uname = uname.data(using: .utf8)!
+        self.aname = aname.data(using: .utf8)!
+    }
+    
+    var encodedData: Data {
+        var data = Data(count: 0)
+        w32(&data, input: length)
+        w8(&data, input: nineType.Tauth.rawValue)
+        w16(&data, input: 0)
+        w32(&data, input: afid)
+        wstr(&data, input: uname)
+        wstr(&data, input: aname)
+        return data
+    }
+    
+    var context: NWConnection.ContentContext {
+        return NWConnection.ContentContext(identifier: "Tauth")
     }
 }
 
 struct Tattach: Messageable, Encodable {
+    var minReceiveLength: Int = 20
+    
     let length: UInt32
     let fid: UInt32
     let afid: UInt32
@@ -325,8 +417,8 @@ struct Tattach: Messageable, Encodable {
     let aname: Data
     
     init(fid: UInt32, afid: UInt32, uname: String, aname: String) {
-
-        let size = aname.withPadding + uname.withPadding + 16
+        
+        let size = aname.count+2 + uname.count+2 + 4+1+2+4+4
         self.length = UInt32(size)
         self.fid = fid
         self.afid = afid /* No auth? Have a global or so to switch */
@@ -352,6 +444,8 @@ struct Tattach: Messageable, Encodable {
 }
 
 struct Tflush: Messageable, Encodable {
+    var minReceiveLength: Int = 7
+    
     let tag: UInt16
     let oldtag: UInt16
     init(tag: UInt16, oldtag: UInt16) {
@@ -374,6 +468,8 @@ struct Tflush: Messageable, Encodable {
 }
 
 struct Twalk: Messageable, Encodable {
+    var minReceiveLength: Int = 22
+    
     let length: UInt32
     let tag: UInt16
     let fid: UInt32
@@ -381,17 +477,21 @@ struct Twalk: Messageable, Encodable {
     let nwname: UInt16
     let wnames: [Data]
     
-    init(fid: UInt32, newFid: UInt32, nwname: UInt16, wnames: [Data]) {
+    init(fid: UInt32, newFid: UInt32, wnames: [String]) {
         var size = 17
         for wname in wnames {
-            size += wname.count
+            size += wname.count+2
         }
         self.length = UInt32(size)
         self.tag = 0
         self.fid = fid
         self.newFid = newFid
-        self.nwname = nwname
-        self.wnames = wnames
+        self.nwname = UInt16(wnames.count)
+        var tmpwnames = [Data]()
+        for wname in wnames {
+            tmpwnames.append(wname.data(using: .utf8)!)
+        }
+        self.wnames = tmpwnames
     }
     
     var encodedData: Data {
@@ -414,6 +514,8 @@ struct Twalk: Messageable, Encodable {
 }
 
 struct Topen: Messageable, Encodable {
+    var minReceiveLength: Int = 24
+    
     let tag: UInt16
     let fid: UInt32
     let mode: nineMode
@@ -426,11 +528,11 @@ struct Topen: Messageable, Encodable {
     
     var encodedData: Data {
         var data = Data(count: 0)
-        w32(&data, input: 15)
+        w32(&data, input: 4+1+2+4+1)
         w8(&data, input: nineType.Topen.rawValue)
         w16(&data, input: tag)
         w32(&data, input: fid)
-        w32(&data, input: mode.rawValue)
+        w8(&data, input: mode.rawValue)
         return data
     }
     
@@ -440,6 +542,8 @@ struct Topen: Messageable, Encodable {
 }
 
 struct Tcreate: Messageable, Encodable {
+    var minReceiveLength: Int = 24
+    
     let tag: UInt16
     let fid: UInt32
     let name: Data
@@ -471,6 +575,8 @@ struct Tcreate: Messageable, Encodable {
 }
 
 struct Tread: Messageable, Encodable {
+    var minReceiveLength: Int = 13
+    
     let tag: UInt16
     let fid: UInt32
     let offset: UInt64
@@ -485,7 +591,7 @@ struct Tread: Messageable, Encodable {
     
     var encodedData: Data {
         var data = Data(count: 0)
-        w32(&data, input: 23)
+        w32(&data, input: 4+1+2+4+8+4)
         w8(&data, input: nineType.Tread.rawValue)
         w16(&data, input: tag)
         w32(&data, input: fid)
@@ -500,6 +606,8 @@ struct Tread: Messageable, Encodable {
 }
 
 struct Twrite: Messageable, Encodable {
+    var minReceiveLength: Int = 11
+    
     let tag: UInt16
     let fid: UInt32
     let offset: UInt64
@@ -521,8 +629,7 @@ struct Twrite: Messageable, Encodable {
         w16(&data, input: tag)
         w32(&data, input: fid)
         w64(&data, input: offset)
-        w32(&data, input: count)
-        wstr(&data, input: bytes)
+        wdata(&data, input: bytes)
         return data
     }
     
@@ -532,6 +639,8 @@ struct Twrite: Messageable, Encodable {
 }
 
 struct Tclunk: Messageable, Encodable {
+    var minReceiveLength: Int = 7
+    
     let tag: UInt16
     let fid: UInt32
     init(tag: UInt16, fid: UInt32) {
@@ -554,6 +663,8 @@ struct Tclunk: Messageable, Encodable {
 }
 
 struct Tremove: Messageable, Encodable {
+    var minReceiveLength: Int = 7
+    
     let tag: UInt16
     let fid: UInt32
     init(tag: UInt16, fid: UInt32) {
@@ -576,6 +687,8 @@ struct Tremove: Messageable, Encodable {
 }
 
 struct Tstat: Messageable, Encodable {
+    var minReceiveLength: Int = 52
+    
     let tag: UInt16
     let fid: UInt32
     init(tag: UInt16, fid: UInt32) {
@@ -598,6 +711,8 @@ struct Tstat: Messageable, Encodable {
 }
 
 struct Twstat: Messageable, Encodable {
+    var minReceiveLength: Int = 7
+    
     let tag: UInt16
     let fid: UInt32
     let stat: nineStat
@@ -621,7 +736,7 @@ struct Twstat: Messageable, Encodable {
         w8(&data, input: stat.qid.type.rawValue)
         w32(&data, input: stat.qid.version)
         w64(&data, input: stat.qid.path)
-        w32(&data, input: stat.mode.rawValue)
+        w8(&data, input: stat.mode.rawValue)
         w32(&data, input: stat.atime)
         w32(&data, input: stat.mtime)
         w64(&data, input: stat.length)
@@ -639,17 +754,6 @@ struct Twstat: Messageable, Encodable {
 }
 
 /* Utility functions */
-func rqid(buffer: UnsafeMutableRawBufferPointer, _ base: inout Int) throws -> nineQid {
-    let type = r8(buffer: buffer, &base)
-    let vers = r32(buffer: buffer, &base)
-    let path = r64(buffer: buffer, &base)
-    
-    if let parsedFileType = fileType(rawValue: type) {
-        return nineQid(type: parsedFileType, version: vers, path: path)
-    }
-    throw NineErrors.decodeError
-}
-
 func w8(_ data: inout Data, input: UInt8) {
     var tempInput = input.littleEndian
     data.append(Data(bytes: &tempInput, count: MemoryLayout<UInt8>.size))
@@ -672,80 +776,104 @@ func w64(_ data: inout Data, input: UInt64) {
 
 func wstr(_ data: inout Data, input: Data) {
     let rev = input.reversed()
-    let padding = rev.count % 4
-    if padding > 0 {
-        for _ in 1...4 - padding {
-            w8(&data, input: 0x0)
-        }
-    }
+    w16(&data, input: UInt16(input.count))
     // Write out the rest of our bytes
     for i in 0...rev.count - 1 {
         var tempInput = input[i].bigEndian
         data.append(Data(bytes: &tempInput, count: MemoryLayout<UInt8>.size))
+        
+    }
+}
 
+func wdata(_ data: inout Data, input: Data) {
+    let rev = input.reversed()
+    // Write out the rest of our bytes
+    w32(&data, input: UInt32(input.count))
+    for i in 0...rev.count - 1 {
+        var tempInput = input[i].bigEndian
+        data.append(Data(bytes: &tempInput, count: MemoryLayout<UInt8>.size))
+        
     }
 }
 
 func r8(buffer: UnsafeMutableRawBufferPointer, _ base: inout Int) -> UInt8 {
-    var tempVar: UInt8 = 0
-    withUnsafeMutableBytes(of: &tempVar) { ptr in
-        ptr.copyBytes(from: UnsafeRawBufferPointer(start: buffer.baseAddress!.advanced(by: base),
-                                                   count: MemoryLayout<UInt8>.size ))
+    defer {
+        base += 1
     }
-    base += MemoryLayout<UInt8>.size
-    print("Reading UInt8 \(tempVar)")
-    return tempVar.littleEndian
+    return buffer[base]
 }
 
 func r16(buffer: UnsafeMutableRawBufferPointer, _ base: inout Int) -> UInt16 {
-    var tempVar: UInt16 = 0
-    withUnsafeMutableBytes(of: &tempVar) { ptr in
-        ptr.copyBytes(from: UnsafeRawBufferPointer(start: buffer.baseAddress!.advanced(by: base),
-                                                   count: MemoryLayout<UInt16>.size))
+    defer {
+        base += 2
     }
-    base += MemoryLayout<UInt16>.size
-    print("Reading UInt16 \(tempVar)")
-    return tempVar.littleEndian
+    var bytes = [UInt8]()
+    bytes.append(buffer[base])
+    bytes.append(buffer[base+1])
+    let tempVar = bytes.withUnsafeBytes { $0.load(as: UInt16.self) }
+    return tempVar
 }
 
 func r32(buffer: UnsafeMutableRawBufferPointer, _ base: inout Int) -> UInt32 {
-    var tempVar: UInt32 = 0
-    if buffer.isEmpty {
-        return 0
+    defer {
+        base += 4
     }
-    withUnsafeMutableBytes(of: &tempVar) { ptr in
-        ptr.copyBytes(from: UnsafeRawBufferPointer(start: buffer.baseAddress!.advanced(by: base),
-                                                   count: MemoryLayout<UInt32>.size))
-    }
-    base += MemoryLayout<UInt32>.size
-    print("Reading UInt32 \(tempVar)")
-    return tempVar.littleEndian
+    var bytes = [UInt8]()
+    bytes.append(buffer[base])
+    bytes.append(buffer[base+1])
+    bytes.append(buffer[base+2])
+    bytes.append(buffer[base+3])
+    let tempVar = bytes.withUnsafeBytes { $0.load(as: UInt32.self) }
+    return tempVar
 }
 
+/* This is backwards a bit, sooooo */
 func r64(buffer: UnsafeMutableRawBufferPointer, _ base: inout Int) -> UInt64 {
-    var tempVar: UInt64 = 0
-    withUnsafeMutableBytes(of: &tempVar) { ptr in
-        ptr.copyBytes(from: UnsafeRawBufferPointer(start: buffer.baseAddress!.advanced(by: base),
-                                                   count: MemoryLayout<UInt64>.size))
+    defer {
+        base += 8
     }
-    base += MemoryLayout<UInt64>.size
-    print("Reading UInt64 \(tempVar)")
-    return tempVar.littleEndian
+    var bytes = [UInt8]()
+    bytes.append(buffer[base])
+    bytes.append(buffer[base+1])
+    bytes.append(buffer[base+2])
+    bytes.append(buffer[base+3])
+    bytes.append(buffer[base+4])
+    bytes.append(buffer[base+5])
+    bytes.append(buffer[base+6])
+    bytes.append(buffer[base+7])
+    let tempVar = bytes.withUnsafeBytes { $0.load(as: UInt64.self )}
+    return tempVar
 }
 
-func rstr(buffer: UnsafeMutableRawBufferPointer, _ base: inout Int) -> Data {
-    var tempVar: Data = Data(count: 0)
-    while base < buffer.count {
-        withUnsafeMutableBytes(of: &tempVar) { ptr in
-            ptr.copyBytes(from: UnsafeRawBufferPointer(start: buffer.baseAddress!.advanced(by: base), count: MemoryLayout<UInt8>.size))
-        }
-        // This may be a break here
-        if tempVar[base] == 0 {
-            break
-        }
+func rstr(buffer: UnsafeMutableRawBufferPointer, count: UInt16, _ base: inout Int) -> Data {
+    var data = Data(count: 0)
+    if count < 1 {
+        return data
+    }
+    for _ in 1...count {
+        data.append(buffer[base])
         base += MemoryLayout<UInt8>.size
     }
-    return tempVar
+    return data
+}
+
+func rdata(buffer: UnsafeMutableRawBufferPointer, count: UInt32, _ base: inout Int) -> Data {
+    var data = Data(count: 0)
+    if count < 1 {
+        return data
+    }
+    for _ in 1...count {
+        data.append(buffer[base])
+        base += MemoryLayout<UInt8>.size
+    }
+    return data
+}
+
+func rqid(buffer: UnsafeMutableRawBufferPointer, _ base: inout Int) -> nineQid {
+    let type = r8(buffer: buffer, &base)
+    let vers = r32(buffer: buffer, &base)
+    let path = r64(buffer: buffer, &base)
+    return nineQid(type: fileType(rawValue: type) ?? .invalid, version: vers, path: path)
 }
 
 extension Data {
@@ -755,8 +883,8 @@ extension Data {
     }
 }
 
-extension String {
-    public var withPadding: Int {
-         return (self.count % 4 > 0) ? (self.count / 4 + 1) * 4 : self.count
+extension UInt8 {
+    var char: Character {
+        return Character(UnicodeScalar(self))
     }
 }

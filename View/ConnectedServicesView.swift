@@ -10,7 +10,7 @@ import SwiftUI
 struct ConnectedServicesView: View {
     @Environment(\.services) var services: ServiceManager
     @Environment(\.navigation) var navigation: NavigationManager
-    
+
     var body: some View {
         Section("Connected") {
             ForEach(services.list) { service in

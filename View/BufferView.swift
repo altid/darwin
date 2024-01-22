@@ -16,7 +16,7 @@ struct BufferView: View {
             Text("Select a Service to continue")
         case .details(let buffer):
             Text("Welcome to the black parade")
-                .navigationTitle(buffer.displayName)
+                .navigationTitle(buffer.title)
         case .settings:
             //SettingsView()
             Text("Hello")

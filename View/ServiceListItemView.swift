@@ -16,6 +16,7 @@ struct ServiceListItemView: View {
             ForEach(service.buffers) { buffer in
                 Text(buffer.displayName)
                     .onTapGesture {
+                        service.selectBuffer(buffer: buffer)
                         navigation.selected = Selected.details(buffer)
                     }
                     .padding(EdgeInsets(top: 0, leading: 10, bottom: 0, trailing: 0))

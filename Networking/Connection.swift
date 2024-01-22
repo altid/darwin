@@ -8,13 +8,35 @@
 import Foundation
 import Network
 
+struct Queue<T> {
+  private var elements: [T] = []
+
+  mutating func enqueue(_ value: T) {
+    elements.append(value)
+  }
+
+  mutating func dequeue() -> T? {
+    guard !elements.isEmpty else {
+      return nil
+    }
+    return elements.removeFirst()
+  }
+
+  var head: T? {
+    return elements.first
+  }
+
+  var tail: T? {
+    return elements.last
+  }
+}
+
 func applicationServiceParameters() -> NWParameters {
     let tcpOptions = NWProtocolTCP.Options()
-    tcpOptions.noDelay = true
+    tcpOptions.enableKeepalive = true
     let params: NWParameters = NWParameters(tls: nil, tcp: tcpOptions)
     let nineOptions = NWProtocolFramer.Options(definition: NineProtocol.definition)
     params.defaultProtocolStack.applicationProtocols.insert(nineOptions, at: 0)
-
     return params
 }
 
@@ -23,7 +45,7 @@ var sharedConnection: PeerConnection?
 protocol PeerConnectionDelegate: AnyObject {
     func connectionReady()
     func connectionFailed()
-    func receivedMessage(content: Data?, message: NWProtocolFramer.Message)
+    func receivedMessage(message: NWProtocolFramer.Message, content: Data?)
     func displayAdvertiseError(_ error: NWError)
 }
 
@@ -33,6 +55,7 @@ class PeerConnection {
     var connection: NWConnection?
     let result: Result
     let initiatedConnection: Bool
+    var sendQueue = Queue<Messageable>()
     
     /* Connect to a service */
     init(result: Result, delegate: PeerConnectionDelegate) {
@@ -40,7 +63,7 @@ class PeerConnection {
         self.result = result
         self.initiatedConnection = true
 
-        guard let endpointPort = NWEndpoint.Port("12346") else { return }
+        guard let endpointPort = NWEndpoint.Port("12345") else { return }
         let connectionEndpoint = NWEndpoint.hostPort(host: NWEndpoint.Host("127.0.0.1"), port: endpointPort)
         connection = NWConnection(to: connectionEndpoint, using: applicationServiceParameters())
         //connection = NWConnection(to: .service(name: result.name, type: "_altid._tcp.", domain: "local.", interface: nil), using: applicationServiceParameters())
@@ -66,6 +89,7 @@ class PeerConnection {
                 if let delegate = self?.delegate {
                     delegate.connectionReady()
                 }
+                
             case .failed(let error):
                 print("\(connection) failed with \(error)")
                 connection.cancel()
@@ -88,18 +112,26 @@ class PeerConnection {
 }
 
 extension PeerConnection {
-    func writeMessage(_ message: Messageable) {
+    func writeMessages() {
         guard let connection = self.connection else {
             return
         }
-        /* T always follows R, though I guess chunky data is a thing to consider */
-        connection.send(content: message.encodedData, contentContext: message.context, isComplete: true, completion: .idempotent)
+
+        guard let message = sendQueue.dequeue() else {
+            return
+        }
+    
         connection.receiveMessage { (content, context, isComplete, error) in
             if let nineMessage = context?.protocolMetadata(definition: NineProtocol.definition) as? NWProtocolFramer.Message {
-                self.delegate?.receivedMessage(content: content, message: nineMessage)
+                self.delegate?.receivedMessage(message: nineMessage, content: content)
+                self.writeMessages()
             }
         }
+        let completion = NWConnection.SendCompletion.contentProcessed { error in
+            if error != nil {
+                print("Error: \(error?.localizedDescription as Any)")
+            }
+        }
+        connection.send(content: message.encodedData, contentContext: message.context, isComplete: true, completion: completion)
     }
-
 }
-
