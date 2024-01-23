@@ -9,7 +9,7 @@ import SwiftUI
 
 struct ConnectedServicesView: View {
     @Environment(\.services) var services: ServiceManager
-    @Environment(\.navigation) var navigation: NavigationManager
+    @Environment(\.navigation) var navigation: Navigation
 
     var body: some View {
         Section("Connected") {

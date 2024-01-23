@@ -14,7 +14,7 @@ enum Selected: Hashable {
     case settings
 }
 
-@Observable class NavigationManager {
+@Observable class Navigation {
     var selected: Selected = .none
     func none() { selected = .none }
     func settings() { selected = .settings }
@@ -22,12 +22,12 @@ enum Selected: Hashable {
 }
 
 extension EnvironmentValues {
-    var navigation: NavigationManager {
-        get { self[NavigationManagerKey.self] }
-        set { self[NavigationManagerKey.self] = newValue }
+    var navigation: Navigation {
+        get { self[NavigationKey.self] }
+        set { self[NavigationKey.self] = newValue }
     }
 }
 
-private struct NavigationManagerKey: EnvironmentKey {
-    static var defaultValue: NavigationManager = NavigationManager()
+private struct NavigationKey: EnvironmentKey {
+    static var defaultValue: Navigation = Navigation()
 }

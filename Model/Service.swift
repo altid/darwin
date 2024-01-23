@@ -9,17 +9,6 @@ import SwiftUI
 import Network
 import Observation
 
-struct Handle {
-    let fid: UInt32
-    let tag: UInt16
-    let name: String
-    
-    init(fid: UInt32, tag: UInt16, name: String) {
-        self.fid = fid
-        self.tag = tag
-        self.name = name
-    }
-}
 
 @Observable
 class Service: Hashable, Identifiable {
@@ -69,12 +58,16 @@ class Service: Hashable, Identifiable {
             session.write(["ctrl"], data: bytes) { error in
                 if error == .success {
                     self.working = false
-                    session.read(["title"], fid: 1, tag: 1) { data in
-                        print("In callback")
-                        buffer.title = data
-                    }
                 }
             }
+            /*
+            session.read(["title"]) { title in
+                buffer.title = title
+            }
+            session.read(["status"]) { status in
+                buffer.status = status
+            }
+             */
             session.run()
         }
     }

@@ -68,12 +68,6 @@ enum nineMode: UInt8, Codable {
     case rclose = 0x40
 }
 
-protocol Messageable {
-    var encodedData: Data {get}
-    var minReceiveLength: Int {get}
-    var context: NWConnection.ContentContext {get}
-}
-
 struct nineQid: Codable {
     var type: fileType
     var version: UInt32
@@ -364,7 +358,7 @@ extension NWProtocolFramer.Message {
     }
 }
 
-struct Tversion: Messageable, Encodable {
+struct Tversion: QueueableMessage, Encodable {
     var minReceiveLength: Int = 13
     
     var encodedData: Data {
@@ -384,7 +378,7 @@ struct Tversion: Messageable, Encodable {
     
 }
 
-struct Tauth: Messageable, Encodable {
+struct Tauth: QueueableMessage, Encodable {
     var minReceiveLength: Int = 20
     
     let length: UInt32
@@ -417,7 +411,7 @@ struct Tauth: Messageable, Encodable {
     }
 }
 
-struct Tattach: Messageable, Encodable {
+struct Tattach: QueueableMessage, Encodable {
     var minReceiveLength: Int = 20
     
     let length: UInt32
@@ -453,7 +447,7 @@ struct Tattach: Messageable, Encodable {
     }
 }
 
-struct Tflush: Messageable, Encodable {
+struct Tflush: QueueableMessage, Encodable {
     var minReceiveLength: Int = 7
     
     let tag: UInt16
@@ -477,7 +471,7 @@ struct Tflush: Messageable, Encodable {
     }
 }
 
-struct Twalk: Messageable, Encodable {
+struct Twalk: QueueableMessage, Encodable {
     var minReceiveLength: Int = 22
     
     let length: UInt32
@@ -523,7 +517,7 @@ struct Twalk: Messageable, Encodable {
     }
 }
 
-struct Topen: Messageable, Encodable {
+struct Topen: QueueableMessage, Encodable {
     var minReceiveLength: Int = 24
     
     let tag: UInt16
@@ -551,7 +545,7 @@ struct Topen: Messageable, Encodable {
     }
 }
 
-struct Tcreate: Messageable, Encodable {
+struct Tcreate: QueueableMessage, Encodable {
     var minReceiveLength: Int = 24
     
     let tag: UInt16
@@ -584,7 +578,7 @@ struct Tcreate: Messageable, Encodable {
     }
 }
 
-struct Tread: Messageable, Encodable {
+struct Tread: QueueableMessage, Encodable {
     var minReceiveLength: Int = 13
     
     let tag: UInt16
@@ -615,7 +609,7 @@ struct Tread: Messageable, Encodable {
     }
 }
 
-struct Twrite: Messageable, Encodable {
+struct Twrite: QueueableMessage, Encodable {
     var minReceiveLength: Int = 11
     
     let tag: UInt16
@@ -648,7 +642,7 @@ struct Twrite: Messageable, Encodable {
     }
 }
 
-struct Tclunk: Messageable, Encodable {
+struct Tclunk: QueueableMessage, Encodable {
     var minReceiveLength: Int = 7
     
     let tag: UInt16
@@ -672,7 +666,7 @@ struct Tclunk: Messageable, Encodable {
     }
 }
 
-struct Tremove: Messageable, Encodable {
+struct Tremove: QueueableMessage, Encodable {
     var minReceiveLength: Int = 7
     
     let tag: UInt16
@@ -696,7 +690,7 @@ struct Tremove: Messageable, Encodable {
     }
 }
 
-struct Tstat: Messageable, Encodable {
+struct Tstat: QueueableMessage, Encodable {
     var minReceiveLength: Int = 52
     
     let tag: UInt16
@@ -720,7 +714,7 @@ struct Tstat: Messageable, Encodable {
     }
 }
 
-struct Twstat: Messageable, Encodable {
+struct Twstat: QueueableMessage, Encodable {
     var minReceiveLength: Int = 7
     
     let tag: UInt16

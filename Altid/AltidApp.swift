@@ -9,7 +9,7 @@ import SwiftUI
 
 @main
 struct AltidApp: App {
-    @State private var navigation = NavigationManager()
+    @State private var navigation = Navigation()
     @State private var services = ServiceManager()
     
     var body: some Scene {

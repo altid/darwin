@@ -27,5 +27,5 @@ struct BufferView: View {
 
 #Preview {
     BufferView()
-        .environment(\.navigation, NavigationManager())
+        .environment(\.navigation, Navigation())
 }

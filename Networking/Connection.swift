@@ -8,36 +8,6 @@
 import Foundation
 import Network
 
-struct Queue<T> {
-    private var elements: [T] = []
-    
-    mutating func enqueue(_ value: T) {
-        elements.append(value)
-    }
-    
-    mutating func dequeue() -> T? {
-        guard !elements.isEmpty else {
-            return nil
-        }
-        return elements.removeFirst()
-    }
-    
-    var size: Int {
-        get {
-            return elements.count
-        }
-    }
-}
-
-struct Enqueued {
-    let message: Messageable
-    let action: (NWProtocolFramer.Message, Data?, NWError?) -> Void
-    init(message: Messageable, action: @escaping (NWProtocolFramer.Message, Data?, NWError?) -> Void) {
-        self.message = message
-        self.action = action
-    }
-}
-
 func applicationServiceParameters() -> NWParameters {
     let tcpOptions = NWProtocolTCP.Options()
     tcpOptions.enableKeepalive = true
@@ -73,6 +43,7 @@ class PeerConnection {
         
         guard let endpointPort = NWEndpoint.Port("12345") else { return }
         let connectionEndpoint = NWEndpoint.hostPort(host: NWEndpoint.Host("127.0.0.1"), port: endpointPort)
+        //let connectionEndpoint = NWEndpoint.hostPort(host: NWEndpoint.Host("192.168.0.233"), port: endpointPort)
         connection = NWConnection(to: connectionEndpoint, using: applicationServiceParameters())
         //connection = NWConnection(to: .service(name: result.name, type: "_altid._tcp.", domain: "local.", interface: nil), using: applicationServiceParameters())
     }
@@ -118,6 +89,7 @@ class PeerConnection {
     }
 }
 
+/* Utility functions */
 extension PeerConnection {
     func connect(uname: String) {
         send(Tversion())
@@ -130,12 +102,34 @@ extension PeerConnection {
         }
     }
 
-    func read(_ names: [String], fid: UInt32 = 0, tag: UInt16 = 0, offset: UInt64 = 0, count: UInt32 = 8068, callback: @escaping (String) -> Void) {
+    /*
+     func close(handle: Handle) {
+        send(Tclunk(fid: handle.fid) // Or similar
+        handle.close()
+     }
+     
+     // This could work, but it would be likely much cleaner to hold an explicit open(), then read() 
+     func read(handle: Handle, offset: UInt64 = 0, count: UInt32 = 8168, callback: @escaping (String) -> Void) {
+        if(!handle.ready) {
+            send(Twalk(fid: 0, newFid: handle.fid, wnames: handle.path))
+            send(Topen(tag: handle.tag, fid: handle.fid, mode: nineMode.read)) { (error: NineErrors) in
+                if error != nil {
+                    return // and do something nice with this
+                }
+                handle.open()
+            }
+        }
+        send(Tread(tag: handle.tag, fid: handle.fid, offset: offset, count: count)) { (data: String) in
+            callback(data)
+        }
+     }
+     */
+    
+    func read(_ names: [String], fid: UInt32 = 0, tag: UInt16 = 0, offset: UInt64 = 0, count: UInt32 = 8168, callback: @escaping (String) -> Void) {
         send(Twalk(fid: fid, newFid: fid+1, wnames: names))
         send(Topen(tag: tag, fid: fid+1, mode: nineMode.read))
         send(Tread(tag: tag, fid: fid+1, offset: offset, count: count)) { (data: String) in
             callback(data)
-            self.send(Tclunk(tag: tag, fid: fid))
         }
 
     }
@@ -146,17 +140,16 @@ extension PeerConnection {
         // TODO: Make sure we do the right thing on write
         send(Twrite(tag: tag, fid: fid+1, offset: offset, count: UInt32(data.count), bytes: data)) { (error: NineErrors) in
             callback(error)
-            self.send(Tclunk(tag: tag, fid: fid))
         }
     }
     
-    private func send(_ message: Messageable) {
+    private func send(_ message: QueueableMessage) {
         _enqueue(message) { (msg, content, error) in
             // Probably error logging, etc
         }
     }
     
-    private func send(_ message: Messageable, callback: @escaping (String) -> Void) {
+    private func send(_ message: QueueableMessage, callback: @escaping (String) -> Void) {
         _enqueue(message) { (msg, content, error) in
             guard let content = content else {
                 return
@@ -169,7 +162,7 @@ extension PeerConnection {
         }
     }
     
-    private func send(_ message: Messageable, callback: @escaping (NineErrors) -> Void) {
+    private func send(_ message: QueueableMessage, callback: @escaping (NineErrors) -> Void) {
         _enqueue(message) { (msg, content, error ) in
             switch error {
             case .none:
@@ -180,7 +173,7 @@ extension PeerConnection {
         }
     }
     
-    private func _enqueue( _ message: Messageable, callback: @escaping (NWProtocolFramer.Message, Data?, NWError?) -> Void) {
+    private func _enqueue( _ message: QueueableMessage, callback: @escaping (NWProtocolFramer.Message, Data?, NWError?) -> Void) {
         sendQueue.enqueue(Enqueued(message: message, action: callback))
     }
     
