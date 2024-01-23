@@ -11,6 +11,8 @@ class Buffer: Identifiable, Hashable {
     var displayName: String
     var unread: Int = 0
     var title: String
+    var status: String = ""
+    var data: String = "Welcome to the Black Parade"
 
     static func == (lhs: Buffer, rhs: Buffer) -> Bool {
         lhs.displayName == rhs.displayName

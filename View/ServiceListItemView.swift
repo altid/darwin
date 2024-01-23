@@ -13,13 +13,23 @@ struct ServiceListItemView: View {
     var service: Service
     var body: some View {
         Section(service.displayName) {
-            ForEach(service.buffers) { buffer in
-                Text(buffer.displayName)
-                    .onTapGesture {
-                        service.selectBuffer(buffer: buffer)
-                        navigation.selected = Selected.details(buffer)
-                    }
-                    .padding(EdgeInsets(top: 0, leading: 10, bottom: 0, trailing: 0))
+            if service.working {
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: .blue))
+#if os(iOS)
+                    .scaleEffect(1)
+#else
+                    .scaleEffect(0.5)
+#endif
+            } else {
+                ForEach(service.buffers) { buffer in
+                    Text(buffer.displayName)
+                        .onTapGesture {
+                            service.selectBuffer(buffer: buffer)
+                            navigation.selected = Selected.details(service.current!)
+                        }
+                        .padding(EdgeInsets(top: 0, leading: 10, bottom: 0, trailing: 0))
+                }
             }
         }
     }

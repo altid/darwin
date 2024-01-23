@@ -15,6 +15,7 @@ enum NineErrors: Error {
     case decodeError
     case unknownType
     case connectError
+    case success
 }
 
 enum nineType: UInt8 {
@@ -157,7 +158,6 @@ class NineProtocol: NWProtocolFramerImplementation {
                 // Not implemented
                 break
             case nineType.Rattach.rawValue:
-
                 let parsed = framer.parseInput(minimumIncompleteLength: 13, maximumLength: 13) { (buffer, isComplete) -> Int in
                     guard let buffer = buffer else {
                         return 0
@@ -229,8 +229,19 @@ class NineProtocol: NWProtocolFramerImplementation {
                 }
             case nineType.Rwrite.rawValue:
                 // TODO: How much we wrote returned, this is important for our isComplete stuff
-                break
+                let parsed = framer.parseInput(minimumIncompleteLength: 4, maximumLength: 4) { (buffer, isComplete) -> Int in
+                    guard let buffer = buffer else {
+                        return 0
+                    }
+                    var offset = 0
+                    _ = r32(buffer: buffer, &offset)
+                    return offset
+                }
+                guard parsed else {
+                    return 4
+                }
             case nineType.Rclunk.rawValue:
+                // 0 bytes back
                 break
             case nineType.Rremove.rawValue:
                 break
@@ -268,7 +279,6 @@ class NineProtocol: NWProtocolFramerImplementation {
             default:
                 return 0
             }
-            
             if !framer.deliverInputNoCopy(length: dataSize, message: message, isComplete: true) {
                 return 0
             }
