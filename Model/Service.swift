@@ -12,7 +12,7 @@ import Observation
 
 @Observable
 class Service: Hashable, Identifiable {
-    private var browser: Result
+    private var name: String
     var buffers: [Buffer]
     var current: Buffer?
     var session: PeerConnection?
@@ -25,16 +25,16 @@ class Service: Hashable, Identifiable {
     }
     
     var displayName: String {
-        return browser.name
+        return name
     }
 
     var connected: Bool {
         return session?.initiatedConnection ?? false
     }
 
-    init(result: Result) {
+    init(name: String) {
         self.buffers = [Buffer]()
-        self.browser = result
+        self.name = name
     }
     
     static func == (lhs: Service, rhs: Service) -> Bool {
@@ -46,13 +46,13 @@ class Service: Hashable, Identifiable {
     }
     
     func connect() {
-        self.session = PeerConnection(result: self.browser, delegate: self)
+        self.session = PeerConnection(name: self.name, delegate: self)
         self.session?.startConnection()
     }
     
     func selectBuffer(buffer: Buffer) {
-        self.current = buffer
         self.working = true
+        self.current = buffer
         if let session = session {
             let bytes = "buffer \(buffer.displayName)".data(using: .utf8)!
             session.write(["ctrl"], data: bytes) { error in
@@ -60,14 +60,10 @@ class Service: Hashable, Identifiable {
                     self.working = false
                 }
             }
-            /*
-            session.read(["title"]) { title in
+            session.read(["title"], fid: 2, tag: 1) { title in
                 buffer.title = title
+                print(title)
             }
-            session.read(["status"]) { status in
-                buffer.status = status
-            }
-             */
             session.run()
         }
     }

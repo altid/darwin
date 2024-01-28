@@ -63,7 +63,7 @@ struct AvailableService: View {
     func connectToService(result: Result) {
         isLoading = true
         DispatchQueue.global(qos: .background).async {
-            let service = Service(result: result)
+            let service = Service(name: result.name)
             service.connect()
             DispatchQueue.main.async {
                 services.addService(service: service)

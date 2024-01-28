@@ -10,12 +10,10 @@ import Observation
 
 final class Result: Identifiable {
     let name: String
-    let result: NWBrowser.Result
     var connecting: Bool = false
 
-    init(name: String, result: NWBrowser.Result) {
+    init(name: String) {
         self.name = name
-        self.result = result
     }
 }
 
@@ -66,8 +64,8 @@ extension Browser: ScannerDelegate {
     func refreshResults(results: Set<NWBrowser.Result>) {
         self.results = [Result]()
         for result in results {
-            if case let NWEndpoint.service(name: name, type: _, domain: _, interface: result.endpoint.interface) = result.endpoint {
-                self.addResult(incoming: Result(name: name, result: result))
+            if case let NWEndpoint.service(name: name, type: "_altid._tcp", domain: "local.", interface: _) = result.endpoint {
+                self.addResult(incoming: Result(name: name))
             }
         }
     }

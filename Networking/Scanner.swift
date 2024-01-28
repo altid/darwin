@@ -16,7 +16,6 @@ protocol ScannerDelegate: AnyObject {
 
 class Scanner {
     weak var delegate: ScannerDelegate?
-    var browser: NWBrowser?
 
     // Create a browsing object with a delegate.
     init(delegate: ScannerDelegate) {
@@ -26,11 +25,10 @@ class Scanner {
 
     // Start browsing for services.
     func startBrowsing() {
-        let parameters = NWParameters()
-        
-        parameters.includePeerToPeer = false
-        let browser = NWBrowser(for: .bonjour(type: "_altid._tcp", domain: ""), using: parameters)
-        self.browser = browser
+        let params = NWParameters()
+        params.includePeerToPeer = true
+
+        let browser = NWBrowser(for: .bonjour(type: "_altid._tcp.", domain: "local."), using: params)
         browser.stateUpdateHandler = { newState in
             switch newState {
             case .failed(let error):
