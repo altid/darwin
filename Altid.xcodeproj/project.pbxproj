@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1C04E9512B6601C000B29FA3 /* RichText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C04E9502B6601C000B29FA3 /* RichText.swift */; };
 		1C08F9252B4A858200DA2053 /* AvailableServicesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C08F9242B4A858200DA2053 /* AvailableServicesView.swift */; };
 		1C0A54002B439A780093E7EF /* BufferView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C0A53FF2B439A780093E7EF /* BufferView.swift */; };
 		1C12AAB22B5106A20028BFCB /* ConnectedServicesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C12AAB12B5106A20028BFCB /* ConnectedServicesView.swift */; };
@@ -28,6 +29,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		1C04E9502B6601C000B29FA3 /* RichText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RichText.swift; sourceTree = "<group>"; };
 		1C08F9242B4A858200DA2053 /* AvailableServicesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvailableServicesView.swift; sourceTree = "<group>"; };
 		1C0A53FF2B439A780093E7EF /* BufferView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BufferView.swift; sourceTree = "<group>"; };
 		1C12AAB12B5106A20028BFCB /* ConnectedServicesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectedServicesView.swift; sourceTree = "<group>"; };
@@ -81,6 +83,7 @@
 				1CA56D182B5F895700FA4F58 /* Handle.swift */,
 				1CA56D1A2B5F896100FA4F58 /* Queue.swift */,
 				1C7FFCA92B5135A1000EDD43 /* Buffer.swift */,
+				1C04E9502B6601C000B29FA3 /* RichText.swift */,
 				1C7FFCA72B512A83000EDD43 /* ServiceManager.swift */,
 			);
 			path = Model;
@@ -213,6 +216,7 @@
 				1C69443C2B4BED7B00A41E5A /* Service.swift in Sources */,
 				1C12AAB22B5106A20028BFCB /* ConnectedServicesView.swift in Sources */,
 				1C0A54002B439A780093E7EF /* BufferView.swift in Sources */,
+				1C04E9512B6601C000B29FA3 /* RichText.swift in Sources */,
 				1C9168B82B466E67003789F5 /* Connection.swift in Sources */,
 				1CC6E2FD2B47984E00BC7008 /* Browser.swift in Sources */,
 				1C7FFCAC2B51D2AC000EDD43 /* ServiceListItemView.swift in Sources */,
@@ -370,7 +374,7 @@
 				INFOPLIST_KEY_UIStatusBarStyle = "";
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
@@ -415,7 +419,7 @@
 				INFOPLIST_KEY_UIStatusBarStyle = "";
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";

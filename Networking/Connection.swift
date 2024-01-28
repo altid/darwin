@@ -32,13 +32,13 @@ protocol PeerConnectionDelegate: AnyObject {
 
 class PeerConnection {
     weak var delegate: PeerConnectionDelegate?
-    var msize: UInt32 = 8192
     var connection: NWConnection?
     let name: String
     let initiatedConnection: Bool
     var sendQueue = Queue<Enqueued>()
+    var handles: [Handle] = [Handle]()
     var running: Bool = false
-
+    
     /* Connect to a service */
     init(name: String, delegate: PeerConnectionDelegate) {
         self.delegate = delegate
@@ -50,7 +50,7 @@ class PeerConnection {
         //let endpoint = NWEndpoint.service(name: name, type: "_altid._tcp", domain: "local.", interface: nil)
         connection = NWConnection(to: endpoint, using: applicationServiceParameters())
     }
-
+    
     func cancel() {
         if let connection = self.connection {
             connection.cancel()
@@ -96,7 +96,7 @@ class PeerConnection {
 
 /* Utility functions */
 extension PeerConnection {
-    func connect(uname: String) {
+    func connect(uname: String = "none") {
         send(Tversion())
         send(Tattach(fid: 0, afid: 0, uname: uname, aname: "/"))
     }
@@ -106,44 +106,44 @@ extension PeerConnection {
             _runjob()
         }
     }
-/*
-     func close(handle: Handle) {
+    
+    func flush(_ handle: Handle) {
+        let tag = UInt16(handles.count > 1 ? handles.count : 1)
+        send(Tflush(tag: tag, oldtag: handle.tag))
+    }
+
+    func close(_ handle: Handle) {
         send(Tclunk(tag: handle.tag, fid: handle.fid))
-     }
-     
-     func open(wnames: [String], mode: nineMode) -> Handle {
-     
-     }
-     
-     func read(handle: Handle, offset: UInt64 = 0, count: UInt32 = 8168, callback: @escaping (String) -> Void) {
+        if let index = handles.firstIndex(where: { $0.fid == handle.fid }) {
+            handles.remove(at: index)
+        }
+    }
+    
+    func open(_ wnames: [String], mode: nineMode) -> Handle {
+        let fid = UInt32(handles.count + 1)
+        let tag = UInt16(handles.count > 1 ? handles.count : 1) - 1
+        let handle = Handle(fid: fid, tag: tag, name: wnames.last!)
+
+        send(Twalk(fid: 0, newFid: handle.fid, wnames: wnames))
+        send(Topen(tag: 0, fid: handle.fid, mode: mode))
+        handles.append(handle)
+        return handle
+    }
+    
+    func read(_ handle: Handle, offset: UInt64 = 0, count: UInt32 = 8168, callback: @escaping (String) -> Void) {
         send(Tread(tag: handle.tag, fid: handle.fid, offset: offset, count: count)) { (data: String) in
             callback(data)
         }
-     }
-     */
-    
-    func read(_ names: [String], fid: UInt32 = 0, tag: UInt16 = 0, offset: UInt64 = 0, count: UInt32 = 8168, callback: @escaping (String) -> Void) {
-        send(Twalk(fid: fid, newFid: fid+1, wnames: names))
-        send(Topen(tag: tag, fid: fid+1, mode: nineMode.read))
-        send(Tread(tag: tag, fid: fid+1, offset: offset, count: count)) { (data: String) in
-            callback(data)
-        }
-        send(Tclunk(tag: tag, fid: fid+1))
     }
     
-    func write(_ names: [String], data: Data, fid: UInt32 = 0, tag: UInt16 = 0, offset: UInt64 = 0, callback: @escaping (NineErrors) -> Void) {
-        send(Twalk(fid: fid, newFid: fid+1, wnames: names))
-        send(Topen(tag: tag, fid: fid+1, mode: nineMode.write))
-        // TODO: Make sure we do the right thing on write
-        send(Twrite(tag: tag, fid: fid+1, offset: offset, count: UInt32(data.count), bytes: data)) { (error: NineErrors) in
+    func write(_ handle: Handle, data: Data, offset: UInt64 = 0, callback: @escaping (NineErrors) -> Void) {
+        send(Twrite(tag: handle.tag, fid: handle.fid, offset: offset, count: UInt32(data.count), bytes: data)) { (error: NineErrors) in
             callback(error)
         }
-        send(Tclunk(tag: tag, fid: fid+1))
     }
     
     private func send(_ message: QueueableMessage) {
         _enqueue(message) { (msg, content, error) in
-            // Probably error logging, etc
         }
     }
     
@@ -176,21 +176,22 @@ extension PeerConnection {
     }
     
     func _runjob() {
-        guard let connection = self.connection else { return }
-        guard let queue = sendQueue.dequeue() else { return }
+        guard let connection = self.connection else { print("Connection broken"); return }
+        guard let queue = sendQueue.dequeue() else { print("_runjob() finished"); return }
         let completion = NWConnection.SendCompletion.contentProcessed { error in
             if error != nil {
                 print("Error: \(error?.localizedDescription as Any)")
                 return
             }
             connection.receiveMessage { (content, context, isComplete, error) in
+                print(self.sendQueue.size)
                 if let nineMessage = context?.protocolMetadata(definition: NineProtocol.definition) as? NWProtocolFramer.Message {
                     queue.action(nineMessage, content, error)
-                    self._runjob()
                 }
+                self._runjob()
             }
         }
+        print("About to send \(queue)")
         connection.send(content: queue.message.encodedData, contentContext: queue.message.context, isComplete: true, completion: completion)
-
     }
 }

@@ -9,7 +9,6 @@ import SwiftUI
 import Network
 import Observation
 
-
 @Observable
 class Service: Hashable, Identifiable {
     private var name: String
@@ -55,16 +54,32 @@ class Service: Hashable, Identifiable {
         self.current = buffer
         if let session = session {
             let bytes = "buffer \(buffer.displayName)".data(using: .utf8)!
-            session.write(["ctrl"], data: bytes) { error in
+            let ctrlHandle = session.open(["..", "ctrl"], mode: .write)
+            session.write(ctrlHandle, data: bytes) { error in
                 if error == .success {
                     self.working = false
+                    //let titleHandle = session.open(["..", "title"], mode: .read)
+                    //session.read(titleHandle) { title in
+                    //    buffer.title = title
+                    //}
+                    let feedHandle = session.open(["..", "feed"], mode: .read)
+                    session.read(feedHandle) { feed in
+                        buffer.elements = fromData(input: feed)
+                    }
+                    session.close(ctrlHandle)
+                    //session.close(titleHandle)
+                    session.close(feedHandle)
                 }
             }
-            session.read(["title"], fid: 2, tag: 1) { title in
-                buffer.title = title
-                print(title)
-            }
             session.run()
+        }
+    }
+    
+    func handleInput(_ input: String) -> Void {
+        if let session = session {
+            let handle = session.open(["input"], mode: .write)
+            session.write(handle, data: input.data(using: .utf8)!) { error in }
+            session.close(handle)
         }
     }
     
@@ -84,7 +99,7 @@ class Service: Hashable, Identifiable {
                 }
             }
             if !seen {
-                tmp.append(Buffer(displayName: String(parts[0])))
+                tmp.append(Buffer(displayName: String(parts[0]), handleInput: handleInput))
             }
         }
         buffers = tmp
@@ -94,8 +109,9 @@ class Service: Hashable, Identifiable {
 extension Service: PeerConnectionDelegate {
     func connectionReady() {
         if let session = session {
-            session.connect(uname: "halfwit")
-            session.read(["tabs"]) { data in
+            session.connect()
+            let fid = session.open(["tabs"], mode: .read)
+            session.read(fid) { data in
                 self.buildBuffers(data: data)
             }
             session.run()

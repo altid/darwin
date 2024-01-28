@@ -7,6 +7,9 @@
 
 import Foundation
 import Observation
+import SwiftUI
+
+let nullmsg = "Welcome to the Black Parade"
 
 @Observable
 class Buffer: Identifiable, Hashable {
@@ -14,7 +17,8 @@ class Buffer: Identifiable, Hashable {
     var unread: Int = 0
     var title: String
     var status: String = ""
-    var data: String = "Welcome to the Black Parade"
+    var elements: [RichText] = [RichText]()
+    var handleInput: (String) -> Void
 
     static func == (lhs: Buffer, rhs: Buffer) -> Bool {
         lhs.displayName == rhs.displayName
@@ -24,9 +28,10 @@ class Buffer: Identifiable, Hashable {
         hasher.combine(displayName)
     }
     
-    init(displayName: String) {
+    init(displayName: String, handleInput: @escaping (String) -> Void) {
         self.displayName = displayName
         self.title = displayName
+        self.handleInput = handleInput
     }
 
 }
