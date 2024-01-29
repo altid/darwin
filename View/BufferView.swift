@@ -9,17 +9,20 @@ import SwiftUI
 
 struct BufferView: View {
     @Environment(\.navigation) var navigation
-
-
+    
     var body: some View {
         switch navigation.selected {
         case .none:
             Text("Select a Service to continue")
         case .details(let buffer):
             ScrollView {
-                Spacer()
-                ForEach(buffer.elements) { element in
-                    ElementView(element: element)
+                ForEach(buffer.elements.indices, id: \.self) { index in
+                    HStack {
+                        ForEach(buffer.elements[index]) { element in
+                            ElementView(element: element)
+                        }
+                        Spacer()
+                    }
                 }
             }
             .navigationTitle(buffer.title)
@@ -56,9 +59,11 @@ struct ElementView: View {
     var body: some View {
         switch element.type {
         case .text(let text):
-            text
+            text.padding(0)
         case .image(let image):
             image
+        case .url(let link):
+            link.padding(0)
         case .none:
             Spacer()
         }
@@ -66,8 +71,8 @@ struct ElementView: View {
 }
 
 /*
-#Preview {
-    BufferView()
-        .environment(\.navigation, Navigation())
-}
-*/
+ #Preview {
+ BufferView()
+ .environment(\.navigation, Navigation())
+ }
+ */

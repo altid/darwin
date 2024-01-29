@@ -46,7 +46,7 @@ class PeerConnection {
         self.initiatedConnection = true
         
         guard let endpointPort = NWEndpoint.Port("12345") else { return }
-        let endpoint = NWEndpoint.hostPort(host: NWEndpoint.Host("192.168.0.63"), port: endpointPort)
+        let endpoint = NWEndpoint.hostPort(host: NWEndpoint.Host("192.168.0.73"), port: endpointPort)
         //let endpoint = NWEndpoint.service(name: name, type: "_altid._tcp", domain: "local.", interface: nil)
         connection = NWConnection(to: endpoint, using: applicationServiceParameters())
     }
@@ -65,7 +65,6 @@ class PeerConnection {
         }
         
         connection.stateUpdateHandler = { [weak self] newState in
-            print(newState)
             switch newState {
             case .ready:
                 if let delegate = self?.delegate {
@@ -85,7 +84,6 @@ class PeerConnection {
                     delegate.connectionFailed()
                 }
             default:
-                print(self?.connection?.currentPath ?? "No data")
                 break
             }
         }
@@ -176,22 +174,20 @@ extension PeerConnection {
     }
     
     func _runjob() {
-        guard let connection = self.connection else { print("Connection broken"); return }
-        guard let queue = sendQueue.dequeue() else { print("_runjob() finished"); return }
+        guard let connection = self.connection else { return }
+        guard let queue = sendQueue.dequeue() else { return }
         let completion = NWConnection.SendCompletion.contentProcessed { error in
             if error != nil {
                 print("Error: \(error?.localizedDescription as Any)")
                 return
             }
             connection.receiveMessage { (content, context, isComplete, error) in
-                print(self.sendQueue.size)
                 if let nineMessage = context?.protocolMetadata(definition: NineProtocol.definition) as? NWProtocolFramer.Message {
                     queue.action(nineMessage, content, error)
                 }
                 self._runjob()
             }
         }
-        print("About to send \(queue)")
         connection.send(content: queue.message.encodedData, contentContext: queue.message.context, isComplete: true, completion: completion)
     }
 }

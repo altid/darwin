@@ -17,7 +17,7 @@ class Buffer: Identifiable, Hashable {
     var unread: Int = 0
     var title: String
     var status: String = ""
-    var elements: [RichText] = [RichText]()
+    var elements: [[RichText]] = [[RichText]]()
     var handleInput: (String) -> Void
 
     static func == (lhs: Buffer, rhs: Buffer) -> Bool {

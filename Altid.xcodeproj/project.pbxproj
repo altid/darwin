@@ -22,6 +22,7 @@
 		1CA326C32B4A5C8F00CA52C6 /* Navigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CA326C22B4A5C8F00CA52C6 /* Navigation.swift */; };
 		1CA56D192B5F895700FA4F58 /* Handle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CA56D182B5F895700FA4F58 /* Handle.swift */; };
 		1CA56D1B2B5F896100FA4F58 /* Queue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CA56D1A2B5F896100FA4F58 /* Queue.swift */; };
+		1CC067992B67775000854AB1 /* Lexer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CC067982B67775000854AB1 /* Lexer.swift */; };
 		1CC6E2FD2B47984E00BC7008 /* Browser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CC6E2FC2B47984E00BC7008 /* Browser.swift */; };
 		1CDCB55D2B40B4BF0054ACA1 /* AltidApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CDCB55C2B40B4BF0054ACA1 /* AltidApp.swift */; };
 		1CDCB5612B40B4C10054ACA1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1CDCB5602B40B4C10054ACA1 /* Assets.xcassets */; };
@@ -45,6 +46,7 @@
 		1CA326C22B4A5C8F00CA52C6 /* Navigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Navigation.swift; sourceTree = "<group>"; };
 		1CA56D182B5F895700FA4F58 /* Handle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Handle.swift; sourceTree = "<group>"; };
 		1CA56D1A2B5F896100FA4F58 /* Queue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Queue.swift; sourceTree = "<group>"; };
+		1CC067982B67775000854AB1 /* Lexer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Lexer.swift; sourceTree = "<group>"; };
 		1CC6E2FC2B47984E00BC7008 /* Browser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Browser.swift; sourceTree = "<group>"; };
 		1CDCB5592B40B4BF0054ACA1 /* Altid.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Altid.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1CDCB55C2B40B4BF0054ACA1 /* AltidApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AltidApp.swift; sourceTree = "<group>"; };
@@ -101,9 +103,18 @@
 			path = View;
 			sourceTree = "<group>";
 		};
+		1CC067972B67771F00854AB1 /* Markup */ = {
+			isa = PBXGroup;
+			children = (
+				1CC067982B67775000854AB1 /* Lexer.swift */,
+			);
+			path = Markup;
+			sourceTree = "<group>";
+		};
 		1CDCB5502B40B4BF0054ACA1 = {
 			isa = PBXGroup;
 			children = (
+				1CC067972B67771F00854AB1 /* Markup */,
 				1CA326BF2B4A5B9400CA52C6 /* View */,
 				1CA326BC2B4A591800CA52C6 /* Model */,
 				1C9168B42B466D68003789F5 /* Networking */,
@@ -220,6 +231,7 @@
 				1C9168B82B466E67003789F5 /* Connection.swift in Sources */,
 				1CC6E2FD2B47984E00BC7008 /* Browser.swift in Sources */,
 				1C7FFCAC2B51D2AC000EDD43 /* ServiceListItemView.swift in Sources */,
+				1CC067992B67775000854AB1 /* Lexer.swift in Sources */,
 				1CA326B32B4A357B00CA52C6 /* ContentView.swift in Sources */,
 				1C7FFCAA2B5135A1000EDD43 /* Buffer.swift in Sources */,
 				1CA56D1B2B5F896100FA4F58 /* Queue.swift in Sources */,
