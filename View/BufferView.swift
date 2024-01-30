@@ -16,15 +16,9 @@ struct BufferView: View {
             Text("Select a Service to continue")
         case .details(let buffer):
             ScrollView {
-                ForEach(buffer.elements.indices, id: \.self) { index in
-                    HStack {
-                        ForEach(buffer.elements[index]) { element in
-                            ElementView(element: element)
-                        }
-                        Spacer()
-                    }
-                }
+                buffer.ColorizedText
             }
+            .padding(2)
             .navigationTitle(buffer.title)
             Spacer()
             InputView(buffer: buffer)
@@ -48,25 +42,9 @@ struct InputView: View {
                     buffer.handleInput(input)
                     input = ""
                 }
+                .textFieldStyle(.roundedBorder)
         }
-        .padding(2)
-    }
-}
-
-struct ElementView: View {
-    let element: RichText
-    
-    var body: some View {
-        switch element.type {
-        case .text(let text):
-            text.padding(0)
-        case .image(let image):
-            image
-        case .url(let link):
-            link.padding(0)
-        case .none:
-            Spacer()
-        }
+        .padding(4)
     }
 }
 

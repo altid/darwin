@@ -216,6 +216,7 @@ class NineProtocol: NWProtocolFramerImplementation {
                     }
                     var offset = 0
                     dataSize = Int(r32(buffer: buffer, &offset))
+                    print("data size in rread", dataSize)
                     return offset
                 }
                 guard parsed else {

@@ -64,7 +64,8 @@ class Service: Hashable, Identifiable {
                     //}
                     let feedHandle = session.open(["..", "feed"], mode: .read)
                     session.read(feedHandle) { feed in
-                        buffer.elements = fromData(input: feed)
+                        let localized = LocalizedStringKey(feed)
+                        buffer.ColorizedText = localized.coloredText()
                     }
                     session.close(ctrlHandle)
                     //session.close(titleHandle)
