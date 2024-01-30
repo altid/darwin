@@ -20,7 +20,6 @@ struct BufferView: View {
             }
             .padding(2)
             .navigationTitle(buffer.title)
-            Spacer()
             InputView(buffer: buffer)
         case .settings:
             //SettingsView()

@@ -23,11 +23,10 @@ struct ServiceListItemView: View {
 #endif
             } else {
                 ForEach(service.buffers) { buffer in
-                    Text(buffer.displayName)
-                        .onTapGesture {
-                            service.selectBuffer(buffer: buffer)
-                            navigation.selected = Selected.details(service.current!)
-                        }
+                    NavigationLink(buffer.displayName, destination: BufferView().onAppear {
+                        service.selectBuffer(buffer: buffer)
+                        navigation.selected = Selected.details(service.current!)
+                    })
                         .padding(EdgeInsets(top: 0, leading: 10, bottom: 0, trailing: 0))
                 }
             }

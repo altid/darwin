@@ -89,7 +89,7 @@ extension LocalizedStringKey {
         
         // Add the remaining non-matching text after the last match
         let remainingTextRange = currentIndex..<originalString.endIndex
-        var remainingText = String(originalString[remainingTextRange])
+        let remainingText = String(originalString[remainingTextRange])
             .trimmingCharacters(in: .controlCharacters)
             .trimmingPrefix(")")
         attributedText = attributedText + Text(LocalizedStringKey(String(remainingText)))
