@@ -11,7 +11,7 @@ import Network
 func applicationServiceParameters() -> NWParameters {
     let tcpOptions = NWProtocolTCP.Options()
     tcpOptions.enableKeepalive = true
-    tcpOptions.keepaliveInterval = 15
+    tcpOptions.keepaliveInterval = 30
     
     let params: NWParameters = NWParameters(tls: nil, tcp: tcpOptions)
     params.includePeerToPeer = true
@@ -46,9 +46,14 @@ class PeerConnection {
         self.initiatedConnection = true
         
         guard let endpointPort = NWEndpoint.Port("12345") else { return }
-        let endpoint = NWEndpoint.hostPort(host: NWEndpoint.Host("192.168.0.73"), port: endpointPort)
+        let endpoint = NWEndpoint.hostPort(host: NWEndpoint.Host("192.168.0.2"), port: endpointPort)
+        //let endpoint = NWEndpoint.hostPort(host: NWEndpoint.Host("localhost"), port: endpointPort)
         //let endpoint = NWEndpoint.service(name: name, type: "_altid._tcp", domain: "local.", interface: nil)
         connection = NWConnection(to: endpoint, using: applicationServiceParameters())
+    }
+    
+    func addHandle(handle: Handle) {
+        handles.append(handle)
     }
     
     func cancel() {
@@ -76,8 +81,10 @@ class PeerConnection {
                 if let initiated = self?.initiatedConnection,
                    initiated && error == NWError.posix(.ECONNABORTED) {
                     // Reconnect if the user suspends the app on the nearby device.
-                    let service = NWEndpoint.service(name: self!.name, type: "_altid._tcp", domain: "local", interface: nil)
-                    let connection = NWConnection(to: service, using: applicationServiceParameters())
+                    guard let endpointPort = NWEndpoint.Port("12345") else { return }
+                    let endpoint = NWEndpoint.hostPort(host: NWEndpoint.Host("192.168.0.248"), port: endpointPort)
+                    //let endpoint = NWEndpoint.service(name: self!.name, type: "_altid._tcp", domain: "local", interface: nil)
+                    let connection = NWConnection(to: endpoint, using: applicationServiceParameters())
                     self?.connection = connection
                     self?.startConnection()
                 } else if let delegate = self?.delegate {
@@ -109,23 +116,38 @@ extension PeerConnection {
         let tag = UInt16(handles.count > 1 ? handles.count : 1)
         send(Tflush(tag: tag, oldtag: handle.tag))
     }
-
-    func close(_ handle: Handle) {
-        send(Tclunk(tag: handle.tag, fid: handle.fid))
-        if let index = handles.firstIndex(where: { $0.fid == handle.fid }) {
-            handles.remove(at: index)
+    
+    func stat(_ handle: Handle, callback: @escaping (nineStat) -> Void) {
+        send(Tstat(tag: handle.tag, fid: handle.fid)) { (stat: nineStat) in
+            callback(stat)
         }
     }
     
-    func open(_ wnames: [String], mode: nineMode) -> Handle {
-        let fid = UInt32(handles.count + 1)
+    func close(_ handle: Handle) {
+        if let index = self.handles.firstIndex(where: { $0.fid == handle.fid }) {
+            self.handles.remove(at: index)
+        }
+        send(Tclunk(tag: handle.tag, fid: handle.fid))
+    }
+    
+    func open(_ wname: String, mode: nineMode, callback: @escaping (Handle) -> Void) {
         let tag = UInt16(handles.count > 1 ? handles.count : 1) - 1
-        let handle = Handle(fid: fid, tag: tag, name: wnames.last!)
-
-        send(Twalk(fid: 0, newFid: handle.fid, wnames: wnames))
-        send(Topen(tag: 0, fid: handle.fid, mode: mode))
-        handles.append(handle)
-        return handle
+        var handle = Handle(fid: 1, tag: tag, name: wname)
+    Again:
+        for h in handles {
+            /* Walk it off the end of the chain, or pop it in a hole */
+            if h.fid == handle.fid {
+                handle.fid += 1
+                continue Again
+            }
+        }
+        self.addHandle(handle: handle)
+        send(Twalk(fid: 0, newFid: handle.fid, wname: wname))
+        self.send(Topen(tag: 0, fid: handle.fid, mode: mode)) { (msg: NWProtocolFramer.Message) in
+            /* iounit occassionally is misparsed in 9p */
+            handle.iounit = msg.iounit > 0 ? msg.iounit : 8168
+            callback(handle)
+        }
     }
     
     func read(_ handle: Handle, offset: UInt64 = 0, count: UInt32 = 8168, callback: @escaping (String) -> Void) {
@@ -142,6 +164,12 @@ extension PeerConnection {
     
     private func send(_ message: QueueableMessage) {
         _enqueue(message) { (msg, content, error) in
+        }
+    }
+    
+    private func send(_ message: QueueableMessage, callback: @escaping (NWProtocolFramer.Message) -> Void) {
+        _enqueue(message) { (msg, content, error) in
+            callback(msg)
         }
     }
     
@@ -169,25 +197,38 @@ extension PeerConnection {
         }
     }
     
+    private func send(_ message: QueueableMessage, callback: @escaping (nineStat) -> Void) {
+        _enqueue(message) { (msg, content, error ) in
+            if let stat = msg.stat {
+                callback(stat)
+            }
+        }
+    }
+    
     private func _enqueue( _ message: QueueableMessage, callback: @escaping (NWProtocolFramer.Message, Data?, NWError?) -> Void) {
         sendQueue.enqueue(Enqueued(message: message, action: callback))
     }
     
     func _runjob() {
+        guard let item = sendQueue.dequeue() else { return }
         guard let connection = self.connection else { return }
-        guard let queue = sendQueue.dequeue() else { return }
-        let completion = NWConnection.SendCompletion.contentProcessed { error in
-            if error != nil {
-                print("Error: \(error?.localizedDescription as Any)")
+        let callback = NWConnection.SendCompletion.contentProcessed { cbe in
+            if cbe != nil {
                 return
             }
-            connection.receiveMessage { (content, context, isComplete, error) in
-                if let nineMessage = context?.protocolMetadata(definition: NineProtocol.definition) as? NWProtocolFramer.Message {
-                    queue.action(nineMessage, content, error)
+            Task {
+                connection.receiveMessage { (content, context, isComplete, error) in
+                    if let msg = context?.protocolMetadata(definition: NineProtocol.definition) as? NWProtocolFramer.Message {
+                        if msg.type == .Rerror {
+                            print("Error encountered: \(String(decoding: content!.bytes, as: UTF8.self))")
+                        }
+
+                        item.action(msg, content, error)
+                        self._runjob()
+                    }
                 }
-                self._runjob()
             }
         }
-        connection.send(content: queue.message.encodedData, contentContext: queue.message.context, isComplete: true, completion: completion)
+        connection.send(content: item.message.encodedData, contentContext: item.message.context, isComplete: true, completion: callback)
     }
 }

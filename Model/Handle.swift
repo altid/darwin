@@ -10,12 +10,14 @@ import Foundation
 /* Handle to an open nine file */
 struct Handle {
     let tag: UInt16
-    let fid: UInt32
     let name: String
+    var fid: UInt32
+    var iounit: UInt32
     
     init(fid: UInt32, tag: UInt16, name: String) {
         self.fid = fid
         self.tag = tag
         self.name = name
+        self.iounit = 8168
     }
 }

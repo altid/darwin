@@ -17,7 +17,7 @@ class Service: Hashable, Identifiable {
     var session: PeerConnection?
     var error: Data?
     var working: Bool = false
-
+    
     enum CodingKeys: CodingKey {
         case browser
         case connection
@@ -26,11 +26,11 @@ class Service: Hashable, Identifiable {
     var displayName: String {
         return name
     }
-
+    
     var connected: Bool {
         return session?.initiatedConnection ?? false
     }
-
+    
     init(name: String) {
         self.buffers = [Buffer]()
         self.name = name
@@ -39,7 +39,7 @@ class Service: Hashable, Identifiable {
     static func == (lhs: Service, rhs: Service) -> Bool {
         return lhs.displayName == rhs.displayName
     }
-
+    
     func hash(into hasher: inout Hasher) {
         hasher.combine(displayName)
     }
@@ -54,22 +54,32 @@ class Service: Hashable, Identifiable {
         self.current = buffer
         if let session = session {
             let bytes = "buffer \(buffer.displayName)".data(using: .utf8)!
-            let ctrlHandle = session.open(["..", "ctrl"], mode: .write)
-            session.write(ctrlHandle, data: bytes) { error in
-                if error == .success {
+            session.open("/ctrl", mode: .write) { ctrlHandle in
+                session.write(ctrlHandle, data: bytes) { error in
+                    if error != .success {
+                        print("Error trying to write to ctrl file: \(error)")
+                        return
+                    }
                     self.working = false
-                    //let titleHandle = session.open(["..", "title"], mode: .read)
-                    //session.read(titleHandle) { title in
-                    //    buffer.title = title
-                    //}
-                    let feedHandle = session.open(["..", "feed"], mode: .read)
-                    session.read(feedHandle) { feed in
-                        let localized = LocalizedStringKey(feed)
-                        buffer.ColorizedText = localized.coloredText()
+                    /* Some times file not found error */
+                    session.open("/title", mode: .read) { handle in
+                        session.read(handle) { title in
+                            buffer.title = "\(buffer.displayName): \(title)"
+                            session.close(handle)
+                        }
+                    }
+                    session.open("/feed", mode: .read) { handle in
+                        session.stat(handle) { stat in
+                            print(stat)
+                            let offset = stat.length > handle.iounit ? stat.length - UInt64(handle.iounit) : 0
+                            session.read(handle, offset: offset, count: handle.iounit) { feed in
+                                let localized = LocalizedStringKey(feed)
+                                buffer.ColorizedText = localized.coloredText()
+                                session.close(handle)
+                            }
+                        }
                     }
                     session.close(ctrlHandle)
-                    //session.close(titleHandle)
-                    session.close(feedHandle)
                 }
             }
             session.run()
@@ -78,9 +88,12 @@ class Service: Hashable, Identifiable {
     
     func handleInput(_ input: String) -> Void {
         if let session = session {
-            let handle = session.open(["input"], mode: .write)
-            session.write(handle, data: input.data(using: .utf8)!) { error in }
-            session.close(handle)
+            session.open("/input", mode: .write) { handle in
+                session.write(handle, data: input.data(using: .utf8)!) { error in
+                    session.close(handle)
+                }
+            }
+            session.run()
         }
     }
     
@@ -111,9 +124,10 @@ extension Service: PeerConnectionDelegate {
     func connectionReady() {
         if let session = session {
             session.connect()
-            let fid = session.open(["tabs"], mode: .read)
-            session.read(fid) { data in
-                self.buildBuffers(data: data)
+            session.open("/tabs", mode: .read) { fid in
+                session.read(fid) { data in
+                    self.buildBuffers(data: data)
+                }
             }
             session.run()
         }

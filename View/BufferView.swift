@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct BufferView: View {
+    @Namespace var bottom
     @Environment(\.navigation) var navigation
     
     var body: some View {
@@ -16,9 +17,10 @@ struct BufferView: View {
             Text("Select a Service to continue")
         case .details(let buffer):
             ScrollView {
+                Spacer()
                 buffer.ColorizedText
             }
-            .padding(2)
+            .padding(4)
             .navigationTitle(buffer.title)
             InputView(buffer: buffer)
         case .settings:
@@ -34,16 +36,13 @@ struct InputView: View {
     let buffer: Buffer
     
     var body: some View {
-        HStack {
-            Image(systemName: "pencil")
-            TextField("", text: $input)
-                .onSubmit {
-                    buffer.handleInput(input)
-                    input = ""
-                }
-                .textFieldStyle(.roundedBorder)
-        }
-        .padding(4)
+        TextField("Enter input", text: $input)
+            .onSubmit {
+                buffer.handleInput(input)
+                input = ""
+            }
+            .textFieldStyle(.roundedBorder)
+            .padding(EdgeInsets(top: 4, leading: 12, bottom: 12, trailing: 12))
     }
 }
 

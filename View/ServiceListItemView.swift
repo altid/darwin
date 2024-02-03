@@ -23,11 +23,16 @@ struct ServiceListItemView: View {
 #endif
             } else {
                 ForEach(service.buffers) { buffer in
-                    NavigationLink(buffer.displayName, destination: BufferView().onAppear {
-                        service.selectBuffer(buffer: buffer)
-                        navigation.selected = Selected.details(service.current!)
-                    })
+                        NavigationLink(buffer.displayName, destination: BufferView())
+                        .simultaneousGesture(TapGesture().onEnded {
+                            print(buffer.displayName, service.current?.displayName)
+                            if buffer.displayName != service.current?.displayName {
+                                service.selectBuffer(buffer: buffer)
+                                navigation.selected = Selected.details(service.current!)
+                            }
+                        })
                         .padding(EdgeInsets(top: 0, leading: 10, bottom: 0, trailing: 0))
+                    
                 }
             }
         }

@@ -79,7 +79,7 @@ struct nineStat: Codable {
     var type: UInt16
     var dev: UInt32
     var qid: nineQid
-    var mode: nineMode
+    var mode: UInt32
     var atime: UInt32
     var mtime: UInt32
     var length: UInt64
@@ -132,7 +132,7 @@ class NineProtocol: NWProtocolFramerImplementation {
             return headerSize
         }
         let message = NWProtocolFramer.Message(count: count, type: type, tag: tag)
-        while true {
+    loop: while true {
             switch type {
             case nineType.Rversion.rawValue:
                 let parsed = framer.parseInput(minimumIncompleteLength: 6, maximumLength: 6) { (buffer, isComplete) -> Int in
@@ -165,8 +165,17 @@ class NineProtocol: NWProtocolFramerImplementation {
                     return 13
                 }
             case nineType.Rerror.rawValue:
-                // We can show a popup eventually
-                break
+                let parsed = framer.parseInput(minimumIncompleteLength: 2, maximumLength: 2) { (buffer, isComplete) -> Int in
+                    guard let buffer = buffer else {
+                        return 0
+                    }
+                    var offset = 0
+                    dataSize = Int(r16(buffer: buffer, &offset))
+                    return offset
+                }
+                guard parsed else {
+                    return 2
+                }
             case nineType.Rflush.rawValue:
                 break
             case nineType.Rwalk.rawValue:
@@ -216,7 +225,6 @@ class NineProtocol: NWProtocolFramerImplementation {
                     }
                     var offset = 0
                     dataSize = Int(r32(buffer: buffer, &offset))
-                    print("data size in rread", dataSize)
                     return offset
                 }
                 guard parsed else {
@@ -241,16 +249,27 @@ class NineProtocol: NWProtocolFramerImplementation {
             case nineType.Rremove.rawValue:
                 break
             case nineType.Rstat.rawValue:
-                let parsed = framer.parseInput(minimumIncompleteLength: 52, maximumLength: .max) { (buffer, isComplete) -> Int in
+                var size: UInt16 = 0
+                let first = framer.parseInput(minimumIncompleteLength: 2, maximumLength:2) { (buffer, isComplete) -> Int in
                     guard let buffer = buffer else {
                         return 0
                     }
                     var offset = 0
-                    let size = r16(buffer: buffer, &offset)
-                    let type = r16(buffer: buffer, &offset)
-                    let dev = r32(buffer: buffer, &offset)
+                    size = r16(buffer: buffer, &offset)
+                    return offset
+                }
+                guard first else {
+                    return 2
+                }
+                let parsed = framer.parseInput(minimumIncompleteLength: Int(size), maximumLength: Int(size)) { (buffer, isComplete) -> Int in
+                    guard let buffer = buffer else {
+                        return 0
+                    }
+                    var offset = 2 // Starting after, since we reuse the initial buffer
+                    let type = r16(buffer: buffer, &offset) // Used by kernel
+                    let dev = r32(buffer: buffer, &offset)  // Used by kernel
                     let qid = rqid(buffer: buffer, &offset)
-                    let mode = r8(buffer: buffer, &offset)
+                    let mode = r32(buffer: buffer, &offset)
                     let atime = r32(buffer: buffer, &offset)
                     let mtime = r32(buffer: buffer, &offset)
                     let length = r64(buffer: buffer, &offset)
@@ -262,12 +281,12 @@ class NineProtocol: NWProtocolFramerImplementation {
                     let gid = rstr(buffer: buffer, count: gcount, &offset)
                     let mcount = r16(buffer: buffer, &offset)
                     let muid = rstr(buffer: buffer, count: mcount, &offset)
-                    
-                    message.stat = nineStat(size: size, type: type, dev: dev, qid: qid, mode: nineMode(rawValue: mode)!, atime: atime, mtime: mtime, length: length, name: name, uid: uid, gid: gid, muid: muid)
+
+                    message.stat = nineStat(size: size, type: type, dev: dev, qid: qid, mode: mode, atime: atime, mtime: mtime, length: length, name: name, uid: uid, gid: gid, muid: muid)
                     return offset
                 }
                 guard parsed else {
-                    return 52
+                    return Int(size)
                 }
             case nineType.Rwstat.rawValue:
                 break
@@ -375,8 +394,6 @@ struct Tversion: QueueableMessage, Encodable {
     var context: NWConnection.ContentContext {
         return NWConnection.ContentContext(identifier: "Tversion")
     }
-    
-    
 }
 
 struct Tauth: QueueableMessage, Encodable {
@@ -479,23 +496,22 @@ struct Twalk: QueueableMessage, Encodable {
     let tag: UInt16
     let fid: UInt32
     let newFid: UInt32
-    let nwname: UInt16
+    let nwnames: UInt16
     let wnames: [Data]
     
-    init(fid: UInt32, newFid: UInt32, wnames: [String]) {
+    init(fid: UInt32, newFid: UInt32, wname: String) {
         var size = 17
-        for wname in wnames {
-            size += wname.count+2
-        }
-        self.length = UInt32(size)
         self.tag = 0
         self.fid = fid
         self.newFid = newFid
-        self.nwname = UInt16(wnames.count)
+        let names = wname.split(separator: "/")
         var tmpwnames = [Data]()
-        for wname in wnames {
-            tmpwnames.append(wname.data(using: .utf8)!)
+        for name in names {
+            tmpwnames.append(name.data(using: .utf8)!)
+            size += name.count + 2
         }
+        self.length = UInt32(size)
+        self.nwnames = UInt16(tmpwnames.count)
         self.wnames = tmpwnames
     }
     
@@ -506,7 +522,7 @@ struct Twalk: QueueableMessage, Encodable {
         w16(&data, input: tag)
         w32(&data, input: fid)
         w32(&data, input: newFid)
-        w16(&data, input: nwname)
+        w16(&data, input: nwnames)
         for wname in wnames {
             wstr(&data, input: wname)
         }
@@ -741,7 +757,7 @@ struct Twstat: QueueableMessage, Encodable {
         w8(&data, input: stat.qid.type.rawValue)
         w32(&data, input: stat.qid.version)
         w64(&data, input: stat.qid.path)
-        w8(&data, input: stat.mode.rawValue)
+        w32(&data, input: stat.mode)
         w32(&data, input: stat.atime)
         w32(&data, input: stat.mtime)
         w64(&data, input: stat.length)

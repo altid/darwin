@@ -17,7 +17,7 @@ struct ContentView: View {
                 AvailableServicesView()
             }
 #if os(iOS)
-            .listStyle(.grouped)
+            .listStyle(.plain )
 #else
             .listStyle(.sidebar)
 #endif

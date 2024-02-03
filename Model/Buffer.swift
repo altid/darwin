@@ -20,6 +20,7 @@ class Buffer: Identifiable, Hashable {
     var ColorizedText: Text?
     var handleInput: (String) -> Void
 
+    // TODO: Append to a given buffer, then re-parse to colorized text based on the trailing 8k section. If we reach the top, parse more.
     static func == (lhs: Buffer, rhs: Buffer) -> Bool {
         lhs.displayName == rhs.displayName
     }
