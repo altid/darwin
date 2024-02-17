@@ -65,6 +65,7 @@ extension Browser: ScannerDelegate {
         self.results = [Result]()
         for result in results {
             if case let NWEndpoint.service(name: name, type: "_altid._tcp", domain: "local.", interface: _) = result.endpoint {
+                print(name)
                 self.addResult(incoming: Result(name: name))
             }
         }

@@ -9,7 +9,7 @@ import Foundation
 import Network
 
 var MSIZE: UInt32 = 8192
-let version = "9P2000".data(using: .utf8)!
+let version = "9P2000 ".data(using: .utf8)!
 
 enum NineErrors: Error {
     case decodeError
@@ -132,7 +132,7 @@ class NineProtocol: NWProtocolFramerImplementation {
             return headerSize
         }
         let message = NWProtocolFramer.Message(count: count, type: type, tag: tag)
-    loop: while true {
+        while true {
             switch type {
             case nineType.Rversion.rawValue:
                 let parsed = framer.parseInput(minimumIncompleteLength: 6, maximumLength: 6) { (buffer, isComplete) -> Int in
@@ -141,7 +141,7 @@ class NineProtocol: NWProtocolFramerImplementation {
                     }
                     var offset = 0
                     let msize = r32(buffer: buffer, &offset)
-                    MSIZE = msize != MSIZE ? msize : MSIZE
+                    MSIZE = (msize != MSIZE) ? msize : MSIZE
                     dataSize = Int(r16(buffer: buffer, &offset))
                     return offset
                 }
@@ -250,22 +250,16 @@ class NineProtocol: NWProtocolFramerImplementation {
                 break
             case nineType.Rstat.rawValue:
                 var size: UInt16 = 0
-                let first = framer.parseInput(minimumIncompleteLength: 2, maximumLength:2) { (buffer, isComplete) -> Int in
+                let parsed = framer.parseInput(minimumIncompleteLength: 36, maximumLength: .max) { (buffer, isComplete) -> Int in
                     guard let buffer = buffer else {
                         return 0
                     }
                     var offset = 0
+                    let msize = r16(buffer: buffer, &offset)
                     size = r16(buffer: buffer, &offset)
-                    return offset
-                }
-                guard first else {
-                    return 2
-                }
-                let parsed = framer.parseInput(minimumIncompleteLength: Int(size), maximumLength: Int(size)) { (buffer, isComplete) -> Int in
-                    guard let buffer = buffer else {
+                    if buffer.count < msize {
                         return 0
                     }
-                    var offset = 2 // Starting after, since we reuse the initial buffer
                     let type = r16(buffer: buffer, &offset) // Used by kernel
                     let dev = r32(buffer: buffer, &offset)  // Used by kernel
                     let qid = rqid(buffer: buffer, &offset)
@@ -273,6 +267,7 @@ class NineProtocol: NWProtocolFramerImplementation {
                     let atime = r32(buffer: buffer, &offset)
                     let mtime = r32(buffer: buffer, &offset)
                     let length = r64(buffer: buffer, &offset)
+
                     let ncount = r16(buffer: buffer, &offset)
                     let name = rstr(buffer: buffer, count: ncount, &offset)
                     let ucount = r16(buffer: buffer, &offset)
@@ -283,14 +278,16 @@ class NineProtocol: NWProtocolFramerImplementation {
                     let muid = rstr(buffer: buffer, count: mcount, &offset)
 
                     message.stat = nineStat(size: size, type: type, dev: dev, qid: qid, mode: mode, atime: atime, mtime: mtime, length: length, name: name, uid: uid, gid: gid, muid: muid)
+
                     return offset
                 }
                 guard parsed else {
-                    return Int(size)
+                    return Int(size+2)
                 }
             case nineType.Rwstat.rawValue:
                 break
             default:
+                print("Unhandled Rmessage: \(type)")
                 return 0
             }
             if !framer.deliverInputNoCopy(length: dataSize, message: message, isComplete: true) {
@@ -382,8 +379,9 @@ struct Tversion: QueueableMessage, Encodable {
     var minReceiveLength: Int = 13
     
     var encodedData: Data {
+        let count: UInt32 = UInt32(13 + version.count)
         var data = Data(count: 0)
-        w32(&data, input: 19) // length
+        w32(&data, input: count) // length
         w8(&data, input: nineType.Tversion.rawValue) // type
         w16(&data, input: 0) // tag
         w32(&data, input: MSIZE)
@@ -798,9 +796,12 @@ func w64(_ data: inout Data, input: UInt64) {
 func wstr(_ data: inout Data, input: Data) {
     let rev = input.reversed()
     w16(&data, input: UInt16(input.count))
+    if input.count == 0 {
+        return
+    }
     // Write out the rest of our bytes
     for i in 0...rev.count - 1 {
-        var tempInput = input[i].bigEndian
+        var tempInput = input[i]
         data.append(Data(bytes: &tempInput, count: MemoryLayout<UInt8>.size))
         
     }
@@ -810,8 +811,11 @@ func wdata(_ data: inout Data, input: Data) {
     let rev = input.reversed()
     // Write out the rest of our bytes
     w32(&data, input: UInt32(input.count))
+    if input.count == 0 {
+        return
+    }
     for i in 0...rev.count - 1 {
-        var tempInput = input[i].bigEndian
+        var tempInput = input[i]
         data.append(Data(bytes: &tempInput, count: MemoryLayout<UInt8>.size))
         
     }

@@ -54,24 +54,29 @@ class Service: Hashable, Identifiable {
         self.current = buffer
         if let session = session {
             let bytes = "buffer \(buffer.displayName)".data(using: .utf8)!
-            session.open("/ctrl", mode: .write) { ctrlHandle in
+            session.open("ctrl", mode: .write) { ctrlHandle in
                 session.write(ctrlHandle, data: bytes) { error in
+                    self.working = false
                     if error != .success {
                         print("Error trying to write to ctrl file: \(error)")
                         return
                     }
-                    self.working = false
+                    session.close(ctrlHandle)
+                    /* We read in our callback to fire after changing our buffer */
                     /* Some times file not found error */
-                    session.open("/title", mode: .read) { handle in
-                        session.read(handle) { title in
-                            buffer.title = "\(buffer.displayName): \(title)"
-                            session.close(handle)
+                    session.open("title", mode: .read) { handle in
+                        if(handle.fid >= 0) {
+                            session.read(handle) { title in
+                                buffer.title = "\(buffer.displayName): \(title)"
+                            }
                         }
+                        session.close(handle)
                     }
-                    session.open("/feed", mode: .read) { handle in
+                    // TODO: A proper feed reader that takes an update delegate
+                    session.open("feed", mode: .read) { handle in
                         session.stat(handle) { stat in
-                            print(stat)
-                            let offset = stat.length > handle.iounit ? stat.length - UInt64(handle.iounit) : 0
+                            //print(stat)
+                            let offset: UInt64 = 16000 //stat.length > handle.iounit ? stat.length - UInt64(handle.iounit) : 0
                             session.read(handle, offset: offset, count: handle.iounit) { feed in
                                 let localized = LocalizedStringKey(feed)
                                 buffer.ColorizedText = localized.coloredText()
@@ -79,7 +84,6 @@ class Service: Hashable, Identifiable {
                             }
                         }
                     }
-                    session.close(ctrlHandle)
                 }
             }
             session.run()
@@ -88,7 +92,7 @@ class Service: Hashable, Identifiable {
     
     func handleInput(_ input: String) -> Void {
         if let session = session {
-            session.open("/input", mode: .write) { handle in
+            session.open("input", mode: .write) { handle in
                 session.write(handle, data: input.data(using: .utf8)!) { error in
                     session.close(handle)
                 }
@@ -124,7 +128,7 @@ extension Service: PeerConnectionDelegate {
     func connectionReady() {
         if let session = session {
             session.connect()
-            session.open("/tabs", mode: .read) { fid in
+            session.open("tabs", mode: .read) { fid in
                 session.read(fid) { data in
                     self.buildBuffers(data: data)
                 }
